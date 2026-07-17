@@ -1,0 +1,33 @@
+{
+  "name": "livepress-bridge",
+  "version": "1.0.0",
+  "description": "Frontend runtime for LivePress — realtime visual editing for headless WordPress. useLiveEdits() overlays wp-admin keystrokes onto your rendered React app via postMessage.",
+  "license": "MIT",
+  "author": "Murad",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/muradwp99/livepress.git",
+    "directory": "packages/bridge"
+  },
+  "keywords": ["wordpress", "headless", "cms", "live-preview", "visual-editing", "react"],
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "src"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "typescript": "^5.8.0"
+  }
+}
