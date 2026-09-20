@@ -1,102 +1,826 @@
-/* LivePress fullscreen editor — modern dark panel + live preview. */
-#livepress-root { position: fixed; inset: 0; z-index: 99999; }
-.lp-app { display: flex; width: 100%; height: 100%; background: #0c0f1a; color: #e8eaf2;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+/*
+ * LivePress fullscreen editor.
+ *
+ * Product UI, not a brand surface: the tool should disappear into the task.
+ * One family, a fixed rem scale, restrained colour, and one button vocabulary
+ * — the studio's gold reserved for the primary action, the current selection
+ * and state, never decoration.
+ *
+ * Rewritten from a version that had three button treatments in one toolbar,
+ * repeater rows built as bordered cards containing bordered inputs, and
+ * uppercase tracked micro-labels on every field. Density was the real cost:
+ * four fields visible on a page that carries sixty-six.
+ */
+
+/* ---------- tokens ---------- */
+/*
+ * On :root, not on #livepress-root. The review panel and the jump palette are
+ * appended to <body>, outside the editor element — scoped there, every var()
+ * inside them resolved to nothing: a transparent card with a black border,
+ * and a z-index of `auto` that put the overlay behind the editor. The old
+ * stylesheet used literal hex everywhere, so tokenising it introduced this.
+ */
+:root {
+  /* Surfaces, darkest to lightest. The panel is its own neutral layer so the
+     preview beside it reads as the content and the panel as the tool. */
+  --bg: #0b0e17;
+  --panel: #11141f;
+  --raise: #171b28;
+  --raise-2: #1d2231;
+
+  --line: #232838;
+  --line-2: #2e3548;
+
+  --ink: #e9ecf5;
+  --ink-2: #a7aec4;
+  /* 4.5:1 on every surface it is used on, including the raised one behind a
+     focused input. The obvious value was #767e99, which measured 4.26 against
+     --raise — placeholders are exactly where a muted grey quietly fails. */
+  --ink-3: #828ba6;
+
+  --accent: #e8c15a;
+  --accent-ink: #191400;
+  --accent-dim: rgba(232, 193, 90, 0.14);
+
+  --ok: #5fd39a;
+  --warn: #e8a45a;
+  --danger: #ff8b8b;
+
+  /* One ratio, ~1.125, fixed. Fluid type in a resizable panel looks worse. */
+  --t-xs: 11px;
+  --t-sm: 12px;
+  --t-md: 13px;
+  --t-base: 13.5px;
+  --t-lg: 15px;
+
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-xl: 16px;
+
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --fast: 140ms;
+
+  /* Semantic, so nothing needs an arbitrary 9999. */
+  --z-grip: 5;
+  --z-sticky: 10;
+  /* Above the editor shell, which is itself lifted over the WordPress admin.
+     The overlay is a sibling of that shell, not a child, so it has to clear
+     it rather than merely sit on top within it. */
+  --z-overlay: 100000;
+}
+
+#livepress-root {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+}
+
+.lp-app {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: var(--t-base);
+  -webkit-font-smoothing: antialiased;
+}
+
+.lp-app *:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
 
 /* ---------- left panel ---------- */
-.lp-panel { width: 420px; min-width: 340px; display: flex; flex-direction: column;
-  border-right: 1px solid #232842; background: #0f1322; }
-.lp-topbar { display: flex; align-items: center; gap: 12px; padding: 14px 16px;
-  border-bottom: 1px solid #232842; }
-.lp-back { color: #8b93b8; text-decoration: none; font-size: 20px; line-height: 1;
-  padding: 6px 10px; border-radius: 8px; }
-.lp-back:hover { background: #1a2038; color: #fff; }
-.lp-title { flex: 1; display: flex; flex-direction: column; line-height: 1.25; }
-.lp-title strong { font-size: 15px; }
-.lp-sub { font-size: 11px; color: #6d76a0; letter-spacing: 0.06em; }
-.lp-save { background: #e8c15a; color: #171a10; border: 0; font-weight: 700;
-  padding: 9px 22px; border-radius: 999px; cursor: pointer; font-size: 13px; }
-.lp-save:hover { filter: brightness(1.08); }
-.lp-save.is-dirty { box-shadow: 0 0 0 3px rgba(232, 193, 90, 0.25); }
+.lp-panel {
+  width: 470px;
+  min-width: 360px;
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  border-right: 1px solid var(--line);
+}
 
-.lp-sections { overflow-y: auto; flex: 1; padding: 10px 12px 40px; }
-.lp-section { border: 1px solid #232842; border-radius: 12px; margin-bottom: 10px;
-  background: #121730; overflow: hidden; }
-.lp-sec-head { width: 100%; display: flex; justify-content: space-between; align-items: center;
-  background: none; border: 0; color: #e8eaf2; font-size: 13.5px; font-weight: 600;
-  padding: 13px 16px; cursor: pointer; letter-spacing: 0.02em; }
-.lp-sec-head:hover { background: #171d38; }
-.lp-caret { color: #6d76a0; transition: transform 0.2s; }
+/* Two zones: who you are and where, then what you can do. */
+.lp-topbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+}
+
+.lp-back {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border-radius: var(--r-md);
+  color: var(--ink-3);
+  text-decoration: none;
+  font-size: 16px;
+  line-height: 1;
+  transition: background var(--fast) var(--ease), color var(--fast) var(--ease);
+}
+.lp-back:hover { background: var(--raise); color: var(--ink); }
+
+.lp-title {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.lp-title strong {
+  font-size: var(--t-lg);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* The route, not a decorative kicker: lowercase, monospace-ish, quiet. */
+.lp-sub {
+  font-size: var(--t-xs);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* One button vocabulary. `lp-mini` is the secondary, `lp-save` the primary,
+   and nothing else in the toolbar invents a third. */
+.lp-mini,
+.lp-save {
+  font: inherit;
+  font-size: var(--t-sm);
+  font-weight: 500;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: var(--r-md);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  text-decoration: none;
+  transition: background var(--fast) var(--ease), border-color var(--fast) var(--ease),
+    color var(--fast) var(--ease), opacity var(--fast) var(--ease);
+}
+
+.lp-mini {
+  background: transparent;
+  border: 1px solid var(--line-2);
+  color: var(--ink-2);
+}
+.lp-mini:hover { background: var(--raise); border-color: var(--ink-3); color: var(--ink); }
+.lp-mini:active { background: var(--raise-2); }
+.lp-mini[disabled] { opacity: 0.45; cursor: not-allowed; }
+.lp-mini.danger { color: var(--danger); border-color: rgba(255, 139, 139, 0.28); }
+.lp-mini.danger:hover { background: rgba(255, 139, 139, 0.1); border-color: var(--danger); color: var(--danger); }
+
+.lp-save {
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  color: var(--accent-ink);
+  font-weight: 650;
+  padding: 0 16px;
+}
+.lp-save:hover { filter: brightness(1.07); }
+.lp-save:active { filter: brightness(0.96); }
+/* Unsaved work reads as a state on the button, not a glow around it. */
+.lp-save.is-dirty::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-ink);
+  opacity: 0.55;
+}
+
+#lp-review.has-changes {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+
+/* ---------- notices ---------- */
+#lp-bars:empty { display: none; }
+.lp-bar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  margin: 12px 14px 0;
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  background: var(--raise);
+  border: 1px solid var(--line-2);
+}
+.lp-bar.warn { background: rgba(232, 164, 90, 0.08); border-color: rgba(232, 164, 90, 0.35); }
+.lp-bar-msg { font-size: var(--t-sm); line-height: 1.5; color: var(--ink-2); }
+.lp-bar-actions { display: flex; gap: 6px; flex: none; }
+
+/* ---------- sections ---------- */
+.lp-sections {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 0 56px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-2) transparent;
+}
+.lp-sections::-webkit-scrollbar { width: 11px; }
+.lp-sections::-webkit-scrollbar-thumb {
+  background: var(--line-2);
+  border-radius: 999px;
+  border: 3px solid var(--panel);
+}
+.lp-sections::-webkit-scrollbar-track { background: transparent; }
+
+/*
+ * Sections are groups separated by a rule, not cards. A card inside the panel
+ * that then contains bordered inputs is two levels of box for no information,
+ * and it was costing about a third of the vertical space.
+ */
+.lp-section { border-bottom: 1px solid var(--line); }
+.lp-section:last-child { border-bottom: 0; }
+
+.lp-sec-head {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  background: none;
+  border: 0;
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--t-md);
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  padding: 12px 14px;
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--fast) var(--ease);
+}
+.lp-sec-head:hover { background: var(--raise); }
+.lp-section.open > .lp-sec-head { color: var(--ink); }
+
+.lp-sec-right { display: flex; align-items: center; gap: 8px; flex: none; }
+.lp-caret {
+  color: var(--ink-3);
+  font-size: 10px;
+  transition: transform var(--fast) var(--ease);
+}
 .lp-section.open .lp-caret { transform: rotate(180deg); }
-.lp-fields { display: none; padding: 4px 16px 16px; }
+
+/* Fill state. Muted until it needs attention — heavy colour on an inactive
+   state is noise, and most sections are simply fine. */
+.lp-sec-count {
+  font-size: var(--t-xs);
+  font-variant-numeric: tabular-nums;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  color: var(--ink-3);
+  background: transparent;
+}
+.lp-sec-count.is-full { color: var(--ok); border-color: rgba(95, 211, 154, 0.3); }
+.lp-sec-count.is-part { color: var(--warn); border-color: rgba(232, 164, 90, 0.3); }
+
+.lp-fields { display: none; padding: 2px 14px 16px; }
 .lp-section.open .lp-fields { display: block; }
 
+/* ---------- fields ---------- */
 .lp-field { margin-top: 14px; }
-.lp-label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em;
-  color: #8b93b8; margin-bottom: 6px; }
-.lp-input { width: 100%; box-sizing: border-box; background: #0c1020; color: #e8eaf2;
-  border: 1px solid #2a3154; border-radius: 8px; padding: 9px 11px; font-size: 13.5px;
-  transition: border-color 0.15s, box-shadow 0.15s; resize: vertical; }
-.lp-input:focus { outline: none; border-color: #e8c15a; box-shadow: 0 0 0 3px rgba(232, 193, 90, 0.15); }
+.lp-field:first-child { margin-top: 4px; }
+
+/*
+ * Sentence case at a readable size. The previous 11px uppercase with 0.12em
+ * tracking is the eyebrow tell, and on a panel with sixty-six of them it is
+ * genuinely harder to scan than plain words.
+ */
+.lp-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  font-size: var(--t-sm);
+  font-weight: 500;
+  color: var(--ink-2);
+  margin-bottom: 6px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.lp-count {
+  font-size: var(--t-xs);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+  flex: none;
+}
+.lp-count.near { color: var(--warn); }
+.lp-count.over { color: var(--danger); font-weight: 600; }
+
+.lp-input {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--raise);
+  color: var(--ink);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-md);
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: var(--t-base);
+  line-height: 1.5;
+  resize: vertical;
+  transition: border-color var(--fast) var(--ease), background var(--fast) var(--ease);
+}
+.lp-input::placeholder { color: var(--ink-3); }
+.lp-input[disabled] { opacity: 0.5; cursor: not-allowed; }
+
+/*
+ * The same rules again, at a specificity wp-admin cannot reach.
+ *
+ * `forms.css` styles single-line fields as `input[type="text"]` — element plus
+ * attribute, 0-1-1 — which outranks a bare `.lp-input` at 0-1-0. Textareas it
+ * styles as `textarea`, 0-0-1, which the class beats. So every text box in
+ * this dark panel was painted white by WordPress while every textarea kept the
+ * panel's own colours: half the column white and half dark, in one scroll.
+ *
+ * Focus was worse. `input[type="text"]:focus` is 0-2-1 against `.lp-input:focus`
+ * at 0-2-0, so clicking a field produced wp-admin's blue ring and none of the
+ * intended change — the field you were typing in looked no different from the
+ * ten you were not.
+ *
+ * Doubling the class rather than scoping to `#livepress-root`: the review
+ * panel, the jump palette and the schedule dialog are appended to <body>,
+ * outside that element, and an id-scoped rule would have fixed the panel and
+ * left every dialog looking like wp-admin.
+ */
+.lp-input.lp-input {
+  background: var(--raise);
+  color: var(--ink);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-md);
+  box-shadow: none;
+}
+.lp-input.lp-input:hover { border-color: var(--ink-3); }
+.lp-input.lp-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--raise-2);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+}
+.lp-input.lp-input::placeholder { color: var(--ink-3); }
+
+.lp-field textarea.lp-input { min-height: 84px; }
+.lp-row textarea.lp-input { min-height: 60px; }
+
+.lp-field.flash {
+  outline: 2px solid var(--accent);
+  outline-offset: 5px;
+  border-radius: var(--r-md);
+}
+
+/* ---------- media ---------- */
+.lp-media-pair { display: flex; flex-direction: column; gap: 6px; }
+.lp-media-pair .lp-input { min-width: 0; }
+
+.lp-media-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+/* Labelled, not a lone pictogram. These were a 🖼 emoji with a title
+   attribute — which renders at a different size in every font, ignores
+   `color`, and is only discoverable by hovering. "Choose" and "Upload" are
+   two different jobs and a single icon could not say which was which. */
+.lp-media-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  padding: 0 10px;
+  height: 30px;
+  background: var(--raise);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-md);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--t-sm);
+  color: var(--ink-2);
+  transition: border-color var(--fast) var(--ease), background var(--fast) var(--ease), color var(--fast) var(--ease);
+}
+.lp-media-btn svg { display: block; flex: none; }
+.lp-media-btn:hover { border-color: var(--accent); background: var(--raise-2); color: var(--ink); }
+.lp-media-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.lp-media-btn[disabled] { opacity: 0.65; cursor: default; }
+
+/* The file input exists only to be clicked by the button beside it. */
+.lp-file { display: none; }
+
+/* Drop target is the whole field, because that is the size of the thing
+   somebody is looking at when they drag a render onto it. */
+.lp-field.lp-dropping,
+.lp-subfield.lp-dropping {
+  outline: 2px dashed var(--accent);
+  outline-offset: 4px;
+  border-radius: var(--r-md);
+}
+
+.lp-thumb { display: none; margin-top: 8px; }
+.lp-thumb.has { display: flex; align-items: center; gap: 10px; }
+.lp-thumb img {
+  width: 76px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line-2);
+  background: var(--raise);
+}
+.lp-thumb-meta { font-size: var(--t-xs); color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.lp-thumb-meta.warn { color: var(--warn); }
 
 /* ---------- repeaters ---------- */
-.lp-repeater { display: flex; flex-direction: column; gap: 8px; }
-.lp-row { display: flex; gap: 8px; align-items: flex-start; background: #0c1020;
-  border: 1px solid #2a3154; border-radius: 10px; padding: 10px; }
-.lp-row.drop { border-color: #e8c15a; }
-.lp-drag { cursor: grab; color: #4c547e; padding: 6px 2px; font-size: 13px; letter-spacing: -2px; user-select: none; }
-.lp-row-fields { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.lp-repeater { display: flex; flex-direction: column; gap: 2px; margin-top: 2px; }
+
+/*
+ * A row is a rule and an indent, not a card. Its controls stay out of the way
+ * until the row is under the pointer or holds focus, which is what keeps a
+ * nineteen-row gallery readable.
+ */
+.lp-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 10px 0 12px 10px;
+  border-top: 1px solid var(--line);
+  border-left: 2px solid transparent;
+  transition: border-color var(--fast) var(--ease), background var(--fast) var(--ease);
+}
+.lp-row:first-child { border-top: 0; }
+.lp-row:hover,
+.lp-row:focus-within { border-left-color: var(--line-2); background: rgba(255, 255, 255, 0.012); }
+.lp-row.drop { border-left-color: var(--accent); background: var(--accent-dim); }
+
+.lp-drag {
+  cursor: grab;
+  color: var(--ink-3);
+  padding: 6px 2px;
+  font-size: 12px;
+  line-height: 1;
+  letter-spacing: -2px;
+  user-select: none;
+  opacity: 0;
+  transition: opacity var(--fast) var(--ease), color var(--fast) var(--ease);
+}
+.lp-row:hover .lp-drag,
+.lp-row:focus-within .lp-drag { opacity: 1; }
+.lp-drag:hover { color: var(--ink); }
+.lp-drag:active { cursor: grabbing; }
+
+.lp-row-fields {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+}
 .lp-subfield.wide { grid-column: 1 / -1; }
-.lp-sublabel { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em;
-  color: #6d76a0; margin-bottom: 4px; }
-.lp-row-del { background: none; border: 0; color: #5a628c; cursor: pointer; font-size: 13px;
-  padding: 4px 6px; border-radius: 6px; }
-.lp-row-del:hover { color: #ff7a7a; background: #1a1030; }
-.lp-row-add { background: #1a2038; color: #cdd3ec; border: 1px dashed #2a3154; border-radius: 10px;
-  padding: 9px; cursor: pointer; font-size: 12.5px; }
-.lp-row-add:hover { border-color: #e8c15a; color: #fff; }
-.lp-media-pair { display: flex; gap: 6px; }
-.lp-media-pair .lp-input { flex: 1; }
-.lp-media-btn { background: #1a2038; border: 1px solid #2a3154; border-radius: 8px;
-  cursor: pointer; padding: 0 12px; font-size: 15px; }
-.lp-media-btn:hover { border-color: #e8c15a; }
+.lp-sublabel {
+  display: block;
+  font-size: var(--t-xs);
+  font-weight: 500;
+  color: var(--ink-3);
+  margin-bottom: 4px;
+  letter-spacing: 0;
+  text-transform: none;
+}
 
-/* ---------- section order + click-to-edit ---------- */
-.lp-order-row { align-items: center; padding: 8px 10px; cursor: default; }
-.lp-order-label { font-size: 13px; color: #e8eaf2; }
-.lp-section.flash { border-color: #e8c15a; box-shadow: 0 0 0 3px rgba(232, 193, 90, 0.25); }
+.lp-row-del {
+  background: none;
+  border: 0;
+  color: var(--ink-3);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 5px 6px;
+  border-radius: var(--r-sm);
+  opacity: 0;
+  flex: none;
+  transition: opacity var(--fast) var(--ease), background var(--fast) var(--ease), color var(--fast) var(--ease);
+}
+.lp-row:hover .lp-row-del,
+.lp-row:focus-within .lp-row-del { opacity: 1; }
+.lp-row-del:hover { background: var(--raise-2); color: var(--ink); }
+.lp-row-del[title="Remove row"]:hover { color: var(--danger); background: rgba(255, 139, 139, 0.1); }
+.lp-row-del[title="Duplicate row"]:hover { color: var(--accent); }
 
-/* ---------- global panels (design / menus) ---------- */
-.lp-section.lp-global { border-color: #3a3358; background: #141230; }
-.lp-range-row { display: flex; align-items: center; gap: 12px; }
-.lp-range { flex: 1; accent-color: #e8c15a; }
-.lp-range-val { font-size: 12px; color: #cdd3ec; min-width: 42px; text-align: right; }
-.lp-color { width: 100%; height: 38px; border: 1px solid #2a3154; border-radius: 8px;
-  background: #0c1020; padding: 3px; cursor: pointer; }
-.lp-nav-row { align-items: center; }
-.lp-nav-key { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em;
-  color: #6d76a0; min-width: 64px; }
-.lp-eye { background: none; border: 1px solid #2a3154; border-radius: 8px; cursor: pointer;
-  font-size: 13px; padding: 6px 9px; }
-.lp-eye.off { opacity: 0.55; }
-.lp-eye:hover { border-color: #e8c15a; }
-.lp-col { background: #0c1020; border: 1px solid #2a3154; border-radius: 10px; padding: 12px; }
-.lp-col-head { display: flex; justify-content: space-between; align-items: center; }
-.lp-links { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
-.lp-link-row { display: grid; grid-template-columns: 1fr 1fr auto auto auto; gap: 6px; align-items: center; }
-.lp-mini { background: #1a2038; border: 1px solid #2a3154; border-radius: 6px; color: #cdd3ec;
-  cursor: pointer; font-size: 11px; padding: 6px 8px; }
-.lp-mini:hover { border-color: #e8c15a; }
-.lp-mini.danger:hover { border-color: #ff7a7a; color: #ff7a7a; }
+.lp-row-add {
+  background: transparent;
+  color: var(--ink-2);
+  border: 1px dashed var(--line-2);
+  border-radius: var(--r-md);
+  padding: 9px;
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--t-sm);
+  margin-top: 8px;
+  transition: border-color var(--fast) var(--ease), color var(--fast) var(--ease), background var(--fast) var(--ease);
+}
+.lp-row-add:hover { border-color: var(--accent); color: var(--ink); background: var(--raise); }
+
+/* ---------- globals: design / menus ---------- */
+.lp-section.lp-global .lp-sec-head { color: var(--ink); }
+.lp-order-row { align-items: center; padding: 8px 0 8px 10px; }
+.lp-order-label { font-size: var(--t-base); color: var(--ink); }
+
+/* ---------- scheduling ---------- */
+
+.lp-sched-list {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+/* A rule and an indent rather than a card each — the same treatment repeater
+   rows get, for the same reason: these are a list, not a set of objects. */
+.lp-sched-list li {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 7px 0 7px 12px;
+  border-left: 1px solid var(--line-2);
+  font-size: var(--t-base);
+  color: var(--ink);
+}
+
+.lp-sched-when {
+  flex: 1;
+  min-width: 0;
+  margin-right: 12px;
+}
+.lp-sched-when .lp-label { margin-bottom: 4px; }
+.lp-sched-when .lp-input { max-width: 280px; }
+
+.lp-sched-error:empty { display: none; }
+.lp-sched-error { color: var(--warn); margin-top: 6px; }
+
+/* The pending-change bar. `bar()` already has a warn tone; this only stops a
+   scheduled change reading as an error the editor has to clear. */
+.lp-bar.scheduled .lp-bar-msg { color: var(--ink); }
+
+/* ---------- Design: brand colour tokens ---------- */
+/*
+ * Replaces the styles for a radius slider, two colour pickers, a nav row with
+ * a show/hide eye, and footer link columns — all of which drove an option no
+ * part of the frontend read. The nav editor that works lives on the
+ * site-chrome document and uses the ordinary repeater controls.
+ */
+
+.lp-token-row {
+  display: grid;
+  grid-template-columns: 34px 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+/* The native swatch, stripped of its chrome so it reads as a colour chip
+   rather than as a button with a colour inside it. */
+.lp-swatch {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-md);
+  background: none;
+  cursor: pointer;
+  transition: border-color var(--fast) var(--ease);
+}
+.lp-swatch::-webkit-color-swatch-wrapper { padding: 2px; }
+.lp-swatch::-webkit-color-swatch { border: none; border-radius: 4px; }
+.lp-swatch::-moz-color-swatch { border: none; border-radius: 4px; }
+.lp-swatch:hover { border-color: var(--ink-3); }
+.lp-swatch:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.lp-hex {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  text-transform: lowercase;
+}
+/* Typing a half-finished hex is normal, so this marks the field rather than
+   rejecting the keystroke — the preview simply waits for a real colour. */
+.lp-hex.is-invalid { border-color: var(--warn); }
+
+.lp-hint {
+  margin: 6px 0 0;
+  font-size: var(--t-sm);
+  line-height: 1.45;
+  color: var(--ink-3);
+}
+
+/* A changed token gets a marker in the gutter, so "what have I actually
+   overridden" is answerable at a glance instead of by comparing hexes. */
+.lp-token { position: relative; }
+.lp-token.is-changed::before {
+  content: "";
+  position: absolute;
+  left: -12px;
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--accent);
+}
+
+.lp-token-foot {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 4px;
+}
+
+/* ---------- resize grip ---------- */
+.lp-grip {
+  width: 5px;
+  flex: none;
+  cursor: col-resize;
+  background: var(--line);
+  position: relative;
+  z-index: var(--z-grip);
+  transition: background var(--fast) var(--ease);
+}
+.lp-grip:hover { background: var(--accent); }
 
 /* ---------- right preview ---------- */
-.lp-preview { flex: 1; background: #05070d; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
-.lp-devicebar { display: flex; justify-content: center; gap: 6px; }
-.lp-device { background: #10152b; border: 1px solid #232842; border-radius: 8px; color: #cdd3ec;
-  cursor: pointer; font-size: 14px; padding: 6px 14px; }
-.lp-device:hover { border-color: #e8c15a; }
-.lp-device.active { background: #e8c15a; color: #171a10; border-color: #e8c15a; }
-.lp-frame-wrap { flex: 1; display: flex; justify-content: center; overflow: auto; }
-.lp-frame { width: 100%; height: 100%; border: 1px solid #232842; border-radius: 14px;
-  background: #0b0e1a; transition: width 0.25s ease; }
-.lp-frame-wrap.framed .lp-frame { box-shadow: 0 0 0 8px #10152b, 0 12px 40px rgba(0, 0, 0, 0.5); }
+.lp-preview {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg);
+  padding: 12px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lp-devicebar { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; }
+.lp-device {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  color: var(--ink-3);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--t-sm);
+  font-weight: 500;
+  line-height: 1;
+  padding: 6px 11px;
+  transition: background var(--fast) var(--ease), color var(--fast) var(--ease), border-color var(--fast) var(--ease);
+}
+/* The icons are stroked in currentColor, so they pick up every state below
+   rather than staying whatever colour the emoji font decided. */
+.lp-device svg { display: block; flex: none; }
+.lp-device-label { white-space: nowrap; }
+.lp-device:hover { background: var(--raise); color: var(--ink); }
+.lp-device:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* Selection, not decoration: a tint and the accent, not a filled gold slab. */
+.lp-device.active {
+  background: var(--accent-dim);
+  border-color: rgba(232, 193, 90, 0.4);
+  color: var(--accent);
+}
+
+.lp-frame-wrap { flex: 1; display: flex; justify-content: center; overflow: auto; min-height: 0; }
+.lp-frame {
+  width: 100%;
+  height: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: #0b0e17;
+  /* No width transition. Animating an iframe forces it to relayout on every
+     frame, and the reflowing page is the thing being read — switching to
+     mobile should show the mobile layout, not 220ms of it being squeezed. */
+}
+.lp-frame-wrap.framed .lp-frame {
+  box-shadow: 0 0 0 6px var(--raise), 0 18px 50px rgba(0, 0, 0, 0.55);
+}
+
+/* ---------- overlays: review, palette ---------- */
+.lp-modal {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-overlay);
+  background: rgba(6, 8, 14, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+}
+.lp-modal-card {
+  width: min(880px, 100%);
+  max-height: 82vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-xl);
+  overflow: hidden;
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.6);
+}
+.lp-modal-head,
+.lp-modal-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 18px; }
+.lp-modal-head { border-bottom: 1px solid var(--line); font-size: var(--t-lg); font-weight: 600; }
+.lp-modal-foot { border-top: 1px solid var(--line); }
+.lp-review-body { overflow-y: auto; padding: 4px 18px 14px; }
+.lp-review-empty { color: var(--ink-3); font-size: var(--t-base); }
+
+.lp-change { border-bottom: 1px solid var(--line); padding: 14px 0; }
+.lp-change:last-child { border-bottom: 0; }
+.lp-change-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; }
+.lp-change-head strong { font-size: var(--t-md); font-weight: 600; }
+.lp-change-sec { font-size: var(--t-xs); color: var(--ink-3); }
+.lp-change-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; }
+.lp-change-before code,
+.lp-change-after code {
+  display: block;
+  font-size: var(--t-sm);
+  line-height: 1.55;
+  padding: 8px 10px;
+  border-radius: var(--r-md);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 9em;
+  overflow: auto;
+}
+.lp-change-before code { background: rgba(255, 139, 139, 0.09); color: #f3c3c3; }
+.lp-change-after code { background: rgba(95, 211, 154, 0.09); color: #b7e8cd; }
+
+.lp-pal { align-items: flex-start; padding-top: 12vh; }
+.lp-pal-card {
+  width: min(580px, 92%);
+  background: var(--panel);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.6);
+}
+.lp-pal-input {
+  width: 100%;
+  box-sizing: border-box;
+  background: transparent;
+  color: var(--ink);
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  padding: 15px 18px;
+  font-family: inherit;
+  font-size: var(--t-lg);
+}
+.lp-pal-input::placeholder { color: var(--ink-3); }
+.lp-pal-input:focus { outline: none; }
+.lp-pal-list { max-height: 52vh; overflow-y: auto; padding: 4px; }
+.lp-pal-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  padding: 9px 14px;
+  border-radius: var(--r-md);
+  color: var(--ink-2);
+  font: inherit;
+  font-size: var(--t-base);
+}
+.lp-pal-row:hover,
+.lp-pal-row.active { background: var(--raise); color: var(--ink); }
+.lp-pal-sec { font-size: var(--t-xs); color: var(--ink-3); flex: none; }
+
+/* ---------- narrow panel ---------- */
+@media (max-width: 1100px) {
+  .lp-panel { width: 380px; min-width: 320px; }
+}
+
+/* ---------- reduced motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .lp-app *,
+  .lp-app *::before,
+  .lp-app *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+  /* Affordances that were revealed by motion must not vanish with it. */
+  .lp-drag,
+  .lp-row-del { opacity: 1; }
+}

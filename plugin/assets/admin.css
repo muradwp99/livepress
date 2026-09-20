@@ -1,0 +1,651 @@
+/*
+ * LivePress admin screens: Content health, Field history, Activity, Images,
+ * Scheduled.
+ *
+ * The fullscreen editor is a dark room with the WordPress chrome hidden. These
+ * five are the opposite situation: they sit *inside* wp-admin, with the sidebar
+ * and admin bar visible, and every user on this install runs the "modern"
+ * scheme — dark navigation, light content. A dark panel dropped into that is
+ * the app-in-an-app look, so this is a light system that shares the editor's
+ * structure (one type ramp, one spacing scale, one button vocabulary, the
+ * studio gold reserved for state) rather than its palette.
+ *
+ * Replaces markup that carried inline hex in twelve printf() calls and five
+ * different ideas of what a table looks like.
+ */
+
+.livepress-screen {
+  /* Measured against #f0f0f1, the wp-admin content background — not against
+     white. The lede and the section descriptions sit on the bare page rather
+     than inside a card, and the first version of this ramp was computed on
+     #fff: --lp-ink-3 was #6b7386, which is 4.75:1 there and 4.17:1 where the
+     text actually sits. Muted grey on a near-white ground is exactly where
+     admin plugins quietly fail the floor. Now 6.4:1 and 4.75:1 on the page,
+     7.3:1 and 5.4:1 in a card. */
+  --lp-ink: #12151d;
+  --lp-ink-2: #4b5266;
+  --lp-ink-3: #626a7d;
+
+  --lp-surface: #fff;
+  --lp-sunken: #f6f7f9;
+  --lp-line: #e3e6ec;
+  --lp-line-2: #cfd4de;
+
+  /* The editor's #e8c15a measures 1.9:1 on white — unusable as text. This is
+     the same hue carried down the ramp until it reads: 5.1:1 on white, 4.7:1
+     on its own tint. The bright gold survives only as a fill under dark ink. */
+  --lp-accent: #8a6a0e;
+  --lp-accent-bg: #fdf6e3;
+
+  --lp-ok: #1a7f37;
+  --lp-warn: #9a5b00;
+  --lp-warn-bg: #fdf3e3;
+  --lp-danger: #b32d2e;
+  --lp-danger-bg: #fdeceb;
+
+  --lp-t-xs: 11px;
+  --lp-t-sm: 12px;
+  --lp-t-md: 13px;
+  --lp-t-lg: 15px;
+  --lp-t-fig: 21px;
+  --lp-t-h1: 23px;
+
+  --lp-r-sm: 5px;
+  --lp-r-md: 8px;
+  --lp-r-lg: 12px;
+
+  --lp-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --lp-fast: 140ms;
+
+  max-width: 1440px;
+  color: var(--lp-ink-2);
+  font-size: var(--lp-t-md);
+  /* wp-admin sets .wrap margins for its own header pattern; this screen owns
+     its header, so the inherited top margin only adds a gap above the title. */
+  margin: 16px 20px 40px 2px;
+}
+
+/*
+ * wp-admin does not set border-box globally, so every padded component here
+ * was measuring wider than it declared: the figure strip could not fit two
+ * 50%-basis cells per row on a phone and stacked them one-up, the table
+ * wrapper overflowed the page by its own 2px border, and the filter select
+ * came out taller than the buttons beside it.
+ *
+ * Scoped to the lp- namespace rather than a `.livepress-screen *` reset,
+ * because WordPress relocates its own admin notices inside this element and
+ * changing their box model is not this stylesheet's business.
+ */
+.livepress-screen [class^="lp-"],
+.livepress-screen [class*=" lp-"] {
+  box-sizing: border-box;
+}
+
+/* ---------- header ---------- */
+
+.lp-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--lp-line);
+  margin-bottom: 20px;
+}
+
+/* The title side. Without a basis it shrinks to fit whatever the action
+   buttons leave over, which wrapped a two-line description into a narrow
+   column beside a lot of empty space. */
+.lp-head > :first-child {
+  flex: 1 1 420px;
+  min-width: 0;
+}
+
+.livepress-screen .lp-head h1 {
+  margin: 0 0 6px;
+  padding: 0;
+  font-size: var(--lp-t-h1);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.011em;
+  color: var(--lp-ink);
+}
+
+.lp-lede {
+  margin: 0;
+  max-width: 68ch;
+  font-size: var(--lp-t-md);
+  line-height: 1.55;
+  color: var(--lp-ink-3);
+  text-wrap: pretty;
+}
+
+.lp-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
+/* ---------- one button vocabulary ---------- */
+
+.livepress-screen .lp-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid var(--lp-line-2);
+  border-radius: var(--lp-r-md);
+  background: var(--lp-surface);
+  color: var(--lp-ink-2);
+  font-size: var(--lp-t-md);
+  font-weight: 500;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--lp-fast) var(--lp-ease),
+    border-color var(--lp-fast) var(--lp-ease), color var(--lp-fast) var(--lp-ease);
+}
+
+.livepress-screen .lp-btn:hover {
+  background: var(--lp-sunken);
+  border-color: var(--lp-ink-3);
+  color: var(--lp-ink);
+}
+
+.livepress-screen .lp-btn:focus-visible {
+  outline: 2px solid var(--lp-accent);
+  outline-offset: 2px;
+}
+
+/* The studio gold as a fill, with near-black ink on it — the one place the
+   editor's accent survives a light surface unchanged. */
+.livepress-screen .lp-btn--primary {
+  background: #e8c15a;
+  border-color: #d8ae42;
+  color: #191400;
+  font-weight: 600;
+}
+
+.livepress-screen .lp-btn--primary:hover {
+  background: #edcb72;
+  border-color: #c99f31;
+  color: #191400;
+}
+
+.livepress-screen .lp-btn--sm {
+  height: 26px;
+  padding: 0 10px;
+  font-size: var(--lp-t-sm);
+}
+
+.livepress-screen .lp-btn svg {
+  display: block;
+  flex: none;
+}
+
+/* ---------- summary figures ---------- */
+/*
+ * A data summary, not a hero. Small values, no cards, no icons, no gradient —
+ * and the table below stays the dominant element on the page. The tone carries
+ * the meaning: a count that should be zero goes quiet when it is and loud when
+ * it is not, so a clean install reads as calm rather than as four proud boxes.
+ */
+
+.lp-figures {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0 0 20px;
+  padding: 0;
+  border: 1px solid var(--lp-line);
+  border-radius: var(--lp-r-lg);
+  background: var(--lp-surface);
+  overflow: hidden;
+}
+
+.lp-figure {
+  flex: 1 1 150px;
+  min-width: 0;
+  padding: 14px 18px;
+  border-left: 1px solid var(--lp-line);
+}
+
+.lp-figure:first-child {
+  border-left: 0;
+}
+
+.lp-figure-value {
+  display: block;
+  font-size: var(--lp-t-fig);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  font-variant-numeric: tabular-nums;
+  color: var(--lp-ink);
+}
+
+.lp-figure-label {
+  display: block;
+  margin-top: 3px;
+  font-size: var(--lp-t-sm);
+  line-height: 1.4;
+  color: var(--lp-ink-3);
+}
+
+.lp-figure.is-quiet .lp-figure-value {
+  color: var(--lp-ink-3);
+  font-weight: 500;
+}
+
+.lp-figure.is-warn .lp-figure-value {
+  color: var(--lp-warn);
+}
+
+.lp-figure.is-danger .lp-figure-value {
+  color: var(--lp-danger);
+}
+
+/* ---------- table ---------- */
+
+.lp-tablewrap {
+  border: 1px solid var(--lp-line);
+  border-radius: var(--lp-r-lg);
+  background: var(--lp-surface);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+.livepress-screen .lp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--lp-t-md);
+}
+
+.livepress-screen .lp-table th,
+.livepress-screen .lp-table td {
+  padding: 11px 16px;
+  text-align: left;
+  vertical-align: top;
+}
+
+/*
+ * Not sticky. It was, with `top: 32px` to clear the admin bar — and it never
+ * stuck: `overflow-x: auto` on the wrapper computes overflow-y to auto too, so
+ * the wrapper becomes the scrollport, and with no height limit it has no
+ * vertical travel for the header to stick within. All the offset did was push
+ * the header 32px down over the first row. Making it stick properly needs the
+ * wrapper to stop being the scroll container, which is a trade against the
+ * horizontal scroll that narrow screens need more.
+ */
+.livepress-screen .lp-table thead th {
+  background: var(--lp-sunken);
+  border-bottom: 1px solid var(--lp-line);
+  font-size: var(--lp-t-xs);
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--lp-ink-3);
+  white-space: nowrap;
+}
+
+.livepress-screen .lp-table tbody tr {
+  border-top: 1px solid var(--lp-line);
+}
+
+.livepress-screen .lp-table tbody tr:first-child {
+  border-top: 0;
+}
+
+.livepress-screen .lp-table tbody tr:hover {
+  background: var(--lp-sunken);
+}
+
+.lp-table .lp-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.lp-table .lp-shrink {
+  width: 1%;
+  white-space: nowrap;
+}
+
+/* ---------- cell furniture ---------- */
+
+.lp-title {
+  display: block;
+  font-weight: 600;
+  color: var(--lp-ink);
+  text-decoration: none;
+  line-height: 1.35;
+}
+
+.livepress-screen a.lp-title:hover {
+  color: var(--lp-accent);
+  text-decoration: underline;
+}
+
+.lp-sub {
+  display: block;
+  margin-top: 2px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: var(--lp-t-xs);
+  line-height: 1.4;
+  color: var(--lp-ink-3);
+  /* `break-all` here, which split rank_math_description across two lines as
+     "rank_math_descrip / tion". This only breaks when a word genuinely cannot
+     fit, and takes the existing opportunities in a path first. */
+  overflow-wrap: anywhere;
+}
+
+.lp-when {
+  display: block;
+  white-space: nowrap;
+  color: var(--lp-ink-2);
+}
+
+.lp-when-rel {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--lp-t-xs);
+  color: var(--lp-ink-3);
+}
+
+.lp-muted {
+  color: var(--lp-ink-3);
+}
+
+.livepress-screen .lp-code {
+  display: block;
+  max-height: 5.5em;
+  overflow: auto;
+  padding: 6px 9px;
+  border-radius: var(--lp-r-sm);
+  background: var(--lp-sunken);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: var(--lp-t-xs);
+  line-height: 1.5;
+  color: var(--lp-ink-2);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- state ---------- */
+/*
+ * Present is a quiet mark; absent is the pill. Pilling both sides of a
+ * twenty-four row grid makes every cell shout and none of them read — the
+ * whole point is to find the three rows that need work.
+ */
+
+.lp-ok {
+  color: var(--lp-ok);
+  font-weight: 600;
+}
+
+.lp-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: var(--lp-t-xs);
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.lp-pill--missing {
+  background: var(--lp-danger-bg);
+  color: var(--lp-danger);
+}
+
+.lp-pill--warn {
+  background: var(--lp-warn-bg);
+  color: var(--lp-warn);
+}
+
+.lp-pill--accent {
+  background: var(--lp-accent-bg);
+  color: var(--lp-accent);
+}
+
+.lp-pill--quiet {
+  background: var(--lp-sunken);
+  color: var(--lp-ink-3);
+}
+
+.lp-bad {
+  color: var(--lp-danger);
+  font-weight: 600;
+}
+
+.lp-warn {
+  color: var(--lp-warn);
+  font-weight: 600;
+}
+
+/* ---------- notices and empty states ---------- */
+
+.livepress-screen .lp-notice {
+  margin: 0 0 20px;
+  padding: 12px 16px;
+  border: 1px solid var(--lp-line);
+  border-radius: var(--lp-r-md);
+  background: var(--lp-surface);
+  font-size: var(--lp-t-md);
+  line-height: 1.5;
+}
+
+.livepress-screen .lp-notice p {
+  margin: 0;
+}
+
+.livepress-screen .lp-notice--ok {
+  border-color: #b6e0c2;
+  background: #f2fbf5;
+  color: #14612b;
+}
+
+.lp-empty {
+  padding: 44px 24px;
+  border: 1px solid var(--lp-line);
+  border-radius: var(--lp-r-lg);
+  background: var(--lp-surface);
+  text-align: center;
+}
+
+.livepress-screen .lp-empty h2 {
+  margin: 0 0 6px;
+  padding: 0;
+  font-size: var(--lp-t-lg);
+  font-weight: 600;
+  color: var(--lp-ink);
+}
+
+.livepress-screen .lp-empty p {
+  margin: 0 auto;
+  max-width: 46ch;
+  font-size: var(--lp-t-md);
+  line-height: 1.55;
+  color: var(--lp-ink-3);
+  text-wrap: pretty;
+}
+
+.livepress-screen .lp-empty .lp-btn {
+  margin-top: 16px;
+}
+
+/* ---------- filter bar ---------- */
+
+.lp-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 18px;
+}
+
+.lp-filter label {
+  font-size: var(--lp-t-md);
+  font-weight: 500;
+  color: var(--lp-ink-2);
+}
+
+.livepress-screen .lp-filter select {
+  height: 32px;
+  min-width: 240px;
+  max-width: 100%;
+  padding: 0 30px 0 10px;
+  border: 1px solid var(--lp-line-2);
+  border-radius: var(--lp-r-md);
+  background-color: var(--lp-surface);
+  font-size: var(--lp-t-md);
+  color: var(--lp-ink);
+  box-shadow: none;
+}
+
+.livepress-screen .lp-filter select:focus {
+  border-color: var(--lp-accent);
+  outline: 2px solid var(--lp-accent);
+  outline-offset: 1px;
+  box-shadow: none;
+}
+
+/* ---------- settings form ---------- */
+/*
+ * The editor stylesheet has .lp-input, .lp-label and .lp-hint already, but
+ * those are the dark-panel versions. Redeclaring them here rather than sharing
+ * a file: the two stylesheets never load together, and a shared one would have
+ * to carry both palettes and pick with a selector — which is how the editor
+ * overlays ended up transparent the last time something was scoped wrong.
+ */
+
+.lp-form {
+  max-width: 640px;
+}
+
+.lp-setting {
+  margin-bottom: 22px;
+}
+
+.livepress-screen .lp-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: var(--lp-t-md);
+  font-weight: 600;
+  color: var(--lp-ink);
+}
+
+.livepress-screen .lp-input {
+  display: block;
+  width: 100%;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--lp-line-2);
+  border-radius: var(--lp-r-md);
+  background: var(--lp-surface);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: var(--lp-t-md);
+  color: var(--lp-ink);
+  box-shadow: none;
+}
+
+.livepress-screen .lp-input:focus {
+  border-color: var(--lp-accent);
+  outline: 2px solid var(--lp-accent);
+  outline-offset: 1px;
+  box-shadow: none;
+}
+
+.livepress-screen .lp-hint {
+  margin: 6px 0 0;
+  max-width: 62ch;
+  font-size: var(--lp-t-sm);
+  line-height: 1.5;
+  color: var(--lp-ink-3);
+  text-wrap: pretty;
+}
+
+.lp-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+/* A form inside a table cell: the remap control on the Schema screen. */
+.lp-inline-form {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.livepress-screen .lp-input--sm {
+  height: 26px;
+  width: auto;
+  min-width: 170px;
+  padding: 0 6px;
+  font-family: inherit;
+  font-size: var(--lp-t-sm);
+}
+
+/* Destructive, and it looks it — but only as an outline, because this sits in
+   every row and a wall of filled red reads as the table being broken rather
+   than as one button being dangerous. */
+.livepress-screen .lp-btn--danger {
+  border-color: #e7b9b8;
+  color: var(--lp-danger);
+}
+
+.livepress-screen .lp-btn--danger:hover {
+  background: var(--lp-danger-bg);
+  border-color: var(--lp-danger);
+  color: var(--lp-danger);
+}
+
+/* The doctor's remedy line, under the result it explains. */
+.livepress-screen .lp-when-rel {
+  max-width: 70ch;
+  white-space: normal;
+  text-wrap: pretty;
+}
+
+/* ---------- section heading between tables ---------- */
+
+.livepress-screen .lp-subhead {
+  margin: 28px 0 6px;
+  padding: 0;
+  font-size: var(--lp-t-lg);
+  font-weight: 600;
+  color: var(--lp-ink);
+}
+
+.lp-lede--spaced {
+  margin-bottom: 14px;
+}
+
+@media (max-width: 782px) {
+  .livepress-screen {
+    margin: 12px 12px 40px 0;
+  }
+
+  .lp-figure {
+    flex-basis: 50%;
+    border-top: 1px solid var(--lp-line);
+  }
+
+  .lp-figure:nth-child(-n + 2) {
+    border-top: 0;
+  }
+
+  .lp-figure:nth-child(odd) {
+    border-left: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .livepress-screen * {
+    transition-duration: 1ms !important;
+  }
+}

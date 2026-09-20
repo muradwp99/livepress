@@ -21,6 +21,43 @@ type EditValue = string | string[] | Record<string, string>[];
 
 const PATH_RE = /^[a-zA-Z][a-zA-Z0-9.]{0,80}$/;
 
+/**
+ * Origins allowed to drive this page.
+ *
+ * The listener below used to accept a message from anybody, and `isEditMode()`
+ * returns true for any cross-origin parent — so any site could iframe a page
+ * using this bridge, or open it with `?edit=1` via window.open and keep the
+ * handle, and rewrite whatever copy it liked. The framework escapes the
+ * values, so this was never XSS; it was content spoofing with no tell.
+ *
+ * Defaults to the WordPress origin serving the page when it can be inferred,
+ * and otherwise to nothing at all — an empty allowlist accepts no edits, which
+ * is the right direction to fail. Call `configureEditOrigins()` before first
+ * render to set it explicitly.
+ */
+let editOrigins = new Set<string>();
+
+export function configureEditOrigins(origins: string | string[]) {
+  const list = Array.isArray(origins) ? origins : String(origins).split(",");
+  editOrigins = new Set(list.map((o) => o.trim().replace(/\/$/, "")).filter(Boolean));
+}
+
+/** True only for a message sent by an origin allowed to edit this page. */
+export function isEditOrigin(origin: string): boolean {
+  return editOrigins.has(origin);
+}
+
+/** Post upward without broadcasting to whoever happens to be embedding. */
+function tellEditor(msg: Record<string, unknown>) {
+  for (const origin of editOrigins) {
+    try {
+      window.parent?.postMessage(msg, origin);
+    } catch {
+      /* no parent, or it went away */
+    }
+  }
+}
+
 let overrides: Record<string, EditValue> = {};
 let version = 0;
 const listeners = new Set<() => void>();
@@ -48,6 +85,7 @@ function startListener() {
   if (started || typeof window === "undefined") return;
   started = true;
   window.addEventListener("message", (e: MessageEvent) => {
+    if (!isEditOrigin(e.origin)) return;
     const data = e.data as
       | { type?: string; path?: string; value?: EditValue; edits?: { path: string; value: EditValue }[] }
       | null;
@@ -69,7 +107,7 @@ function startListener() {
   });
   // Tell the parent admin we are ready to receive live edits.
   try {
-    window.parent?.postMessage({ type: "aux-edit-ready" }, "*");
+    tellEditor({ type: "aux-edit-ready" });
   } catch {
     /* no parent — fine */
   }
@@ -86,7 +124,7 @@ function startListener() {
       const key = zone?.getAttribute("data-lp");
       if (!key) return;
       try {
-        window.parent?.postMessage({ type: "aux-focus", section: key }, "*");
+        tellEditor({ type: "aux-focus", section: key });
       } catch {
         /* no parent */
       }

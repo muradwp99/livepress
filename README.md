@@ -16,13 +16,25 @@ Works with any React frontend — Next.js, TanStack Start, Remix, Vite SPA.
 ## Repo layout
 
 ```
-plugin/            WordPress plugin (no build step, vanilla JS editor)
-  livepress.php      core: Site Pages CPT, editor screens, REST, meta
-  livepress-schema.php   ← YOUR page schemas live here (reference included)
-  assets/editor.js   the fullscreen editor app
-  assets/editor.css
-packages/bridge/   npm package `livepress-bridge` (React runtime)
-  src/index.ts       useLiveEdits(), isEditMode(), click-to-edit sender
+plugin/                 the WordPress plugin
+  livepress.php         core: menu, REST, meta registration, editor screen
+  livepress-schema.php  loader — globs schema-*.php beside it
+  admin-screens.php     Content health, Field history
+  settings.php          frontend URL, exposed design tokens
+  activity.php          who changed what, when
+  schedule.php          publish a pending change at a chosen time
+  migration.php         move field keys without losing values
+  field-orphans.php     fields the frontend no longer reads
+  broken-links.php      404s the frontend reported back
+  asset-check.php       images pointing at the wrong host
+  page-text.php         plain-text export of a page's fields
+  enquiries.php         form submissions inbox (needs a plugin that stores
+                        them — see Enquiries below)
+  livepress-forms.php   form schema registration
+  assets/               editor.js, editor.css, admin.css
+examples/
+  schema-faq.php        one page's schema, to copy
+packages/bridge/        the frontend npm package
 ```
 
 ## Install
@@ -35,10 +47,21 @@ Copy `plugin/` to `wp-content/plugins/livepress/` and activate. Then:
 wp option update livepress_frontend "http://localhost:3000"
 ```
 
-Define your pages in `livepress-schema.php` (a full reference schema ships in
-the file — replace it with your own). Field kinds: `text`, `textarea`,
-`lines` (newline list), `repeater` (sub-kind `image` adds a Media Library
-picker). Every schema field is auto-registered as REST-visible post meta.
+Define your pages as `schema-*.php` files inside the plugin directory, one
+per page, each returning an array. `livepress-schema.php` globs them and
+merges the result, so adding a page is adding a file — nothing to register.
+Copy `examples/schema-faq.php` to `plugin/schema-home.php` and edit.
+
+> Changed in 1.1. Previously a single `livepress-schema.php` held every page,
+> which meant the plugin shipped with one site's content model compiled into
+> it and updating the plugin meant merging your schema by hand. The glob keeps
+> your pages out of the plugin's own files. Name them `schema-*.php` and note
+> that the glob is not fussy: `schema-anything.example.php` matches too, so
+> keep samples out of the plugin root.
+
+Field kinds: `text`, `textarea`, `lines` (newline list), `repeater` (sub-kind
+`image` adds a Media Library picker). Every schema field is auto-registered as
+REST-visible post meta.
 
 Create one `sitepage` doc per schema key (slug = key). Collections: filter
 `livepress_collections` with post types and add `collection:{type}` schemas.
@@ -65,6 +88,29 @@ inert outside the editor iframe (or `?edit=1`) — zero production cost.
 
 Optional live channels (globals): listen for `aux-design` (CSS variable
 tokens), `aux-menu` (nav config), `aux-footer` — see the protocol below.
+
+### Allowing the editor to drive the page
+
+```ts
+import { configureEditOrigins } from "livepress-bridge";
+
+configureEditOrigins("https://admin.example.com");
+```
+
+> New in 1.1, and it is a breaking change: without this the bridge accepts no
+> edits and the live preview stays inert.
+>
+> It used to accept a `postMessage` from anybody. `isEditMode()` is true for
+> any cross-origin parent, so any site could iframe a page using this bridge —
+> or open it with `?edit=1` through `window.open` and keep the handle — and
+> rewrite whatever copy it liked. Frameworks escape the values, so it was never
+> XSS; it was content spoofing, and a visitor had no way to tell. An empty
+> allowlist now accepts nothing, which is the right direction to fail.
+>
+> Pair it with `frame-ancestors` on the frontend so the browser enforces the
+> same rule the JS does. Worth checking that header actually arrives: some
+> CDNs replace `Content-Security-Policy` with their own, in which case the JS
+> allowlist is the only gate you have.
 
 ## The protocol
 
@@ -93,6 +139,14 @@ applies immutably.
    real values.
 4. **Verify with a sentinel**: change one value in WP, request the page,
    expect the sentinel. Fail-soft masks dead wiring — body length lies.
+
+## Enquiries
+
+The Enquiries screen lists submissions stored as a private `enquiry` post
+type. LivePress does not create that post type or receive the submissions —
+it renders an inbox for whatever does. It attaches through a registration
+filter rather than re-registering, so the plugin that owns the post type keeps
+owning it. With no such plugin installed the screen is simply empty.
 
 ## Hard-won rules
 
