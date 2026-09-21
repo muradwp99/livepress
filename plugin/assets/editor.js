@@ -3,7 +3,7 @@
  * Left: schema-driven field panel. Right: live iframe of the real frontend.
  * Every input streams over postMessage (aux-edit); Save persists via REST.
  */
-/* global LIVEPRESS, wp */
+/* global LIVEPRESS, wp, jQuery */
 (function () {
 	"use strict";
 
@@ -389,6 +389,72 @@
 		var pad = function ( n ) { return ( n < 10 ? "0" : "" ) + n; };
 		return date.getFullYear() + "-" + pad( date.getMonth() + 1 ) + "-" + pad( date.getDate() ) +
 			"T" + pad( date.getHours() ) + ":" + pad( date.getMinutes() );
+	}
+
+	/* ---------- who else is in here ----------
+	 *
+	 * Conflicts were only ever caught at save. That is the safeguard that
+	 * stops work being lost and it stays, but it speaks after the twenty
+	 * minutes rather than before them — and "somebody is already editing this"
+	 * is worth most at the moment you arrive.
+	 *
+	 * The lock and the refresh are both WordPress's own. Core has shipped
+	 * wp_refresh_post_lock on the heartbeat for years; LivePress never saw it
+	 * only because it redirects away from the classic editor that sets it. The
+	 * one thing written here is the part core cannot know: what to say.
+	 */
+	function renderLockBar() {
+		if ( ! B.lockedBy ) { return; }
+		showBar( bar(
+			sprintf(
+				/* translators: %s is the name of the person already editing. */
+				__( "%s opened this page before you and may still be editing it. You can carry on — changes to different fields merge, and anything that clashes is flagged when you save.", "livepress" ),
+				B.lockedBy
+			),
+			null,
+			"warn"
+		) );
+	}
+
+	/**
+	 * Keep the lock alive, and notice if somebody takes it.
+	 *
+	 * Without the refresh the lock lapses after about two and a half minutes,
+	 * so a second person arriving at minute three is told nothing while the
+	 * first is still typing — which is the whole failure this is here to
+	 * prevent, just with extra steps.
+	 */
+	function bindLockHeartbeat() {
+		if ( ! B.postId || ! window.jQuery || ! window.wp || ! wp.heartbeat ) { return; }
+		var lock = B.lock || "";
+		if ( ! lock ) { return; }
+
+		jQuery( document ).on( "heartbeat-send.livepress", function ( e, data ) {
+			data[ "wp-refresh-post-lock" ] = { post_id: B.postId, lock: lock };
+		} );
+
+		jQuery( document ).on( "heartbeat-tick.livepress", function ( e, data ) {
+			var got = data && data[ "wp-refresh-post-lock" ];
+			if ( ! got ) { return; }
+			if ( got.lock_error ) {
+				/* Somebody opened it and took the lock. Not fatal — the save
+				   path still compares field by field — but they should hear it
+				   now rather than at save. */
+				lock = "";
+				jQuery( document ).off( "heartbeat-send.livepress heartbeat-tick.livepress" );
+				showBar( bar(
+					sprintf(
+						/* translators: %s is the name of the person who took over. */
+						__( "%s has opened this page since you did. Your unsaved work is still here; save when you are ready and anything that clashes will be flagged.", "livepress" ),
+						( got.lock_error.text || "" ).replace( /<[^>]*>/g, "" ) || __( "Somebody else", "livepress" )
+					),
+					null,
+					"warn"
+				) );
+			} else if ( got.new_lock ) {
+				lock = got.new_lock;
+			}
+		} );
 	}
 
 	function renderPendingBar() {
@@ -1682,6 +1748,8 @@
 		refreshReviewCount();
 		offerRecovery();
 		renderPendingBar();
+		renderLockBar();
+		bindLockHeartbeat();
 		focusRequestedSection();
 	}
 

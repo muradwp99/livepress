@@ -3,7 +3,7 @@
  * Plugin Name: LivePress
  * Plugin URI:  https://github.com/muradwp99/livepress
  * Description: Realtime visual editing for headless WordPress. One "Site Pages" list; every page opens a fullscreen editor — fields left, live preview of your real frontend right — streaming every keystroke into the rendered site before saving.
- * Version:     1.2.1
+ * Version:     1.3.0
  * Author:      Murad
  * License:     MIT
  * Text Domain: livepress
@@ -288,6 +288,37 @@ function livepress_render_editor() {
 		}
 	}
 
+	/*
+	 * Who else is in here.
+	 *
+	 * Conflicts were only ever caught at save: checkConflict() compares the
+	 * document's modified time against the one this editor opened with, which
+	 * is a real safeguard and the reason nobody has lost work. But it tells
+	 * you after the twenty minutes, not before them, and being warned that
+	 * somebody is already editing is worth far more at the moment you arrive.
+	 *
+	 * WordPress has had this the whole time; LivePress simply never used it,
+	 * because it redirects away from the classic editor that sets the lock.
+	 * So this is core's own lock, refreshed over core's own heartbeat handler
+	 * — nothing reimplemented.
+	 *
+	 * The lock is NOT taken when somebody else holds it. Claiming it would
+	 * evict them from a screen they are working on to warn them about the
+	 * person who evicted them, which is worse than saying nothing.
+	 */
+	$lock_holder = function_exists( 'wp_check_post_lock' ) ? wp_check_post_lock( $post->ID ) : false;
+	$lock        = '';
+	$locked_by   = null;
+	if ( $lock_holder ) {
+		$who       = get_userdata( $lock_holder );
+		$locked_by = $who ? $who->display_name : __( 'Somebody else', 'livepress' );
+	} elseif ( function_exists( 'wp_set_post_lock' ) ) {
+		$claimed = wp_set_post_lock( $post->ID );
+		if ( is_array( $claimed ) ) {
+			$lock = implode( ':', $claimed );
+		}
+	}
+
 	livepress_enqueue_editor( array(
 		'mode'     => $is_collection ? 'collection' : 'page',
 		'postId'   => $post->ID,
@@ -306,6 +337,11 @@ function livepress_render_editor() {
 		   there is one record per document, and the later one would win by
 		   accident rather than by intent. */
 		'pending'  => livepress_pending_for( $post->ID ),
+		/* Set when somebody else already had it open; the editor says so and
+		   otherwise stays out of the way. */
+		'lockedBy' => $locked_by,
+		/* "time:user_id", the shape core's heartbeat handler expects back. */
+		'lock'     => $lock,
 		'schema'   => $schema,
 		'values'   => $values,
 	) );
@@ -432,6 +468,7 @@ function livepress_asset_version( string $relative ): string {
 function livepress_enqueue_editor( array $boot ) {
 	wp_enqueue_media();
 	wp_enqueue_script( 'wp-api-fetch' );
+	wp_enqueue_script( 'heartbeat' );
 	wp_enqueue_script( 'livepress-editor', plugins_url( 'assets/editor.js', __FILE__ ), array( 'wp-api-fetch', 'wp-i18n' ), livepress_asset_version( 'assets/editor.js' ), true );
 	/* Without this the editor's own strings stay untranslatable even after the
 	   PHP side is done — and the editor is where nearly all the words are. */

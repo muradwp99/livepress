@@ -154,6 +154,22 @@ globally would take that away and replace it with something coarser. So the
 shortcut only fires when the caret is outside a text field, which is exactly
 where there is no native undo to lose.
 
+## Who else has the page open
+
+Opening a document shows a warning if somebody else already has it open, and
+the editor keeps that lock alive over WordPress's heartbeat so a third person
+arriving later is told too.
+
+This is core's post lock and core's own refresh handler — LivePress simply
+never used them, because it redirects away from the classic editor that sets
+the lock. The lock is deliberately not taken when somebody else holds it:
+claiming it would evict them from a screen they are working in, to warn them
+about the person who evicted them.
+
+It is an early warning, not the safeguard. The safeguard is still the
+field-by-field comparison at save, which catches a genuine clash whether or
+not anyone was warned.
+
 ## Alt text follows the picture
 
 Choosing a new image pulls that attachment's alt text from the Media Library
