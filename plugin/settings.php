@@ -30,9 +30,9 @@ const LIVEPRESS_SETTINGS = 'livepress-settings';
 /** Options this screen owns: name => [label, default]. */
 function livepress_settings_fields(): array {
 	return array(
-		'livepress_frontend'          => array( 'Frontend URL', 'http://localhost:3000' ),
-		'livepress_revalidate_secret' => array( 'Revalidate secret', '' ),
-		'livepress_legacy_host'       => array( 'Previous site host', '' ),
+		'livepress_frontend'          => array( __( 'Frontend URL', 'livepress' ), 'http://localhost:3000' ),
+		'livepress_revalidate_secret' => array( __( 'Revalidate secret', 'livepress' ), '' ),
+		'livepress_legacy_host'       => array( __( 'Previous site host', 'livepress' ), '' ),
 	);
 }
 
@@ -60,7 +60,7 @@ add_action(
 	'admin_post_livepress_save_settings',
 	function () {
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_die( 'You do not have permission to do that.', 403 );
+			wp_die( __( 'You do not have permission to do that.', 'livepress' ), 403 );
 		}
 		check_admin_referer( 'livepress_save_settings' );
 
@@ -95,7 +95,7 @@ add_action(
 	'admin_post_livepress_generate_secret',
 	function () {
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_die( 'You do not have permission to do that.', 403 );
+			wp_die( __( 'You do not have permission to do that.', 'livepress' ), 403 );
 		}
 		check_admin_referer( 'livepress_generate_secret' );
 		update_option( 'livepress_revalidate_secret', wp_generate_password( 40, false ) );
@@ -124,31 +124,31 @@ function livepress_run_doctor(): array {
 
 	/* 1. Is a frontend URL even set, and is it plausible? */
 	if ( '' === $front ) {
-		$checks[] = $check( 'Frontend URL', 'fail', 'Not set.', 'Enter the address your Next.js site runs on.' );
+		$checks[] = $check( __( 'Frontend URL', 'livepress' ), 'fail', __( 'Not set.', 'livepress' ), __( 'Enter the address your Next.js site runs on.', 'livepress' ) );
 		return $checks;
 	}
 	if ( false !== strpos( $front, 'localhost' ) || false !== strpos( $front, '127.0.0.1' ) ) {
 		$checks[] = $check(
-			'Frontend URL',
+			__( 'Frontend URL', 'livepress' ),
 			'warn',
-			$front . ' — a local address.',
-			'This only works while you are editing on the same machine that runs the dev server. Point it at a deployed URL for anyone else.'
+			$front . __( ' — a local address.', 'livepress' ),
+			__( 'This only works while you are editing on the same machine that runs the dev server. Point it at a deployed URL for anyone else.', 'livepress' )
 		);
 	} else {
-		$checks[] = $check( 'Frontend URL', 'pass', $front );
+		$checks[] = $check( __( 'Frontend URL', 'livepress' ), 'pass', $front );
 	}
 
 	/* 2. Does it answer at all? */
 	$res  = wp_remote_get( $front . '/?lpdoctor=' . wp_generate_password( 6, false ), array( 'timeout' => 10, 'redirection' => 3 ) );
 	$code = is_wp_error( $res ) ? 0 : (int) wp_remote_retrieve_response_code( $res );
 	if ( $code >= 200 && $code < 400 ) {
-		$checks[] = $check( 'Frontend responds', 'pass', 'HTTP ' . $code . '.' );
+		$checks[] = $check( __( 'Frontend responds', 'livepress' ), 'pass', 'HTTP ' . $code . '.' );
 	} else {
 		$checks[] = $check(
-			'Frontend responds',
+			__( 'Frontend responds', 'livepress' ),
 			'fail',
 			is_wp_error( $res ) ? $res->get_error_message() : 'HTTP ' . $code . '.',
-			'The editor previews this URL in an iframe. While it does not answer, the right-hand pane stays blank and the plugin looks broken.'
+			__( 'The editor previews this URL in an iframe. While it does not answer, the right-hand pane stays blank and the plugin looks broken.', 'livepress' )
 		);
 		return $checks;
 	}
@@ -158,22 +158,22 @@ function livepress_run_doctor(): array {
 	$body   = (string) wp_remote_retrieve_body( $res );
 	$bridge = false !== strpos( $body, 'aux-edit' ) || false !== strpos( $body, 'data-lp' );
 	$checks[] = $bridge
-		? $check( 'Edit bridge', 'pass', 'The frontend is listening for live edits.' )
+		? $check( __( 'Edit bridge', 'livepress' ), 'pass', __( 'The frontend is listening for live edits.', 'livepress' ) )
 		: $check(
-			'Edit bridge',
+			__( 'Edit bridge', 'livepress' ),
 			'warn',
-			'No edit markers found on the home page.',
-			'The preview will render but will not update as you type. Check that the frontend imports the LivePress bridge and that edit mode is active inside an iframe.'
+			__( 'No edit markers found on the home page.', 'livepress' ),
+			__( 'The preview will render but will not update as you type. Check that the frontend imports the LivePress bridge and that edit mode is active inside an iframe.', 'livepress' )
 		);
 
 	/* 4. Is there a secret, and does the frontend agree with it? A wrong
 	      secret is silent: saves succeed, the page just never rebuilds. */
 	if ( '' === $secret ) {
 		$checks[] = $check(
-			'Revalidate secret',
+			__( 'Revalidate secret', 'livepress' ),
 			'warn',
-			'Not set.',
-			'Publishing still saves, but the frontend will not rebuild until its own cache expires. Generate one here and put the same value in the frontend environment.'
+			__( 'Not set.', 'livepress' ),
+			__( 'Publishing still saves, but the frontend will not rebuild until its own cache expires. Generate one here and put the same value in the frontend environment.', 'livepress' )
 		);
 		return $checks;
 	}
@@ -189,27 +189,27 @@ function livepress_run_doctor(): array {
 	$pcode = is_wp_error( $probe ) ? 0 : (int) wp_remote_retrieve_response_code( $probe );
 
 	if ( 200 === $pcode ) {
-		$checks[] = $check( 'Instant publish', 'pass', 'The frontend accepted a revalidation for /.' );
+		$checks[] = $check( __( 'Instant publish', 'livepress' ), 'pass', __( 'The frontend accepted a revalidation for /.', 'livepress' ) );
 	} elseif ( 401 === $pcode || 403 === $pcode ) {
 		$checks[] = $check(
-			'Instant publish',
+			__( 'Instant publish', 'livepress' ),
 			'fail',
-			'The frontend rejected the secret (HTTP ' . $pcode . ').',
-			'WordPress and the frontend hold different secrets. Copy the value below into the frontend environment and redeploy.'
+			__( 'The frontend rejected the secret (HTTP ', 'livepress' ) . $pcode . ').',
+			__( 'WordPress and the frontend hold different secrets. Copy the value below into the frontend environment and redeploy.', 'livepress' )
 		);
 	} elseif ( 404 === $pcode ) {
 		$checks[] = $check(
-			'Instant publish',
+			__( 'Instant publish', 'livepress' ),
 			'warn',
-			'No /api/revalidate route on the frontend.',
-			'Saves will still publish, but the page updates on its own schedule rather than in seconds. Add the revalidate route to the frontend.'
+			__( 'No /api/revalidate route on the frontend.', 'livepress' ),
+			__( 'Saves will still publish, but the page updates on its own schedule rather than in seconds. Add the revalidate route to the frontend.', 'livepress' )
 		);
 	} else {
 		$checks[] = $check(
-			'Instant publish',
+			__( 'Instant publish', 'livepress' ),
 			'fail',
 			is_wp_error( $probe ) ? $probe->get_error_message() : 'HTTP ' . $pcode . '.',
-			'The revalidate endpoint did not answer as expected.'
+			__( 'The revalidate endpoint did not answer as expected.', 'livepress' )
 		);
 	}
 
@@ -220,7 +220,7 @@ add_action(
 	'admin_post_livepress_doctor',
 	function () {
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_die( 'You do not have permission to do that.', 403 );
+			wp_die( __( 'You do not have permission to do that.', 'livepress' ), 403 );
 		}
 		check_admin_referer( 'livepress_doctor' );
 		set_transient( 'livepress_doctor_report', livepress_run_doctor(), 10 * MINUTE_IN_SECONDS );
@@ -236,14 +236,21 @@ function livepress_render_settings() {
 	livepress_screen_open(
 		__( 'Settings', 'livepress' ),
 		__( 'Where the frontend lives and how WordPress reaches it. The check below does not read these values back to you — it uses them, and reports which link in the chain is broken.', 'livepress' ),
-		sprintf( '<a class="lp-btn lp-btn--primary" href="%s">Run the check</a>', esc_url( $doctor ) )
+		sprintf( '<a class="lp-btn lp-btn--primary" href="%s">' . esc_html__( 'Run the check', 'livepress' ) . '</a>', esc_url( $doctor ) )
 	);
 
 	if ( isset( $_GET['saved'] ) ) {
-		echo '<div class="lp-notice lp-notice--ok"><p>Settings saved. Run the check to confirm the frontend agrees.</p></div>';
+		echo '<div class="lp-notice lp-notice--ok"><p>' . esc_html__( 'Settings saved. Run the check to confirm the frontend agrees.', 'livepress' ) . '</p></div>';
 	}
 	if ( isset( $_GET['generated'] ) ) {
-		echo '<div class="lp-notice lp-notice--ok"><p>New secret generated. Copy it into the frontend environment as <code>LIVEPRESS_REVALIDATE_SECRET</code> and redeploy, or instant publish will stop working until you do.</p></div>';
+		printf(
+			'<div class="lp-notice lp-notice--ok"><p>%s</p></div>',
+			/* translators: %s is the LIVEPRESS_REVALIDATE_SECRET constant name in <code>. */
+			wp_kses_post( sprintf(
+				__( 'New secret generated. Copy it into the frontend environment as %s and redeploy, or instant publish will stop working until you do.', 'livepress' ),
+				'<code>LIVEPRESS_REVALIDATE_SECRET</code>'
+			) )
+		);
 	}
 
 	/* ---------- the doctor ---------- */
@@ -252,12 +259,12 @@ function livepress_render_settings() {
 		$tone = array( 'pass' => 'lp-pill--quiet', 'warn' => 'lp-pill--warn', 'fail' => 'lp-pill--missing' );
 		$word = array( 'pass' => 'working', 'warn' => 'check', 'fail' => 'broken' );
 
-		echo '<h2 class="lp-subhead">Connection</h2>';
+		echo '<h2 class="lp-subhead">' . esc_html__( 'Connection', 'livepress' ) . '</h2>';
 		livepress_table_open(
 			array(
 				array( '', 'lp-shrink' ),
 				array( 'Link', 'lp-shrink' ),
-				array( 'What happened', '' ),
+				array( __( 'What happened', 'livepress' ), '' ),
 			)
 		);
 		foreach ( $report as $row ) {
@@ -275,12 +282,12 @@ function livepress_render_settings() {
 		}
 		livepress_table_close();
 	} elseif ( isset( $_GET['checked'] ) ) {
-		echo '<div class="lp-notice"><p>The check produced no results, which should not happen. Try again.</p></div>';
+		echo '<div class="lp-notice"><p>' . esc_html__( 'The check produced no results, which should not happen. Try again.', 'livepress' ) . '</p></div>';
 	}
 
 	/* ---------- the form ---------- */
 
-	echo '<h2 class="lp-subhead">Connection settings</h2>';
+	echo '<h2 class="lp-subhead">' . esc_html__( 'Connection settings', 'livepress' ) . '</h2>';
 	printf(
 		'<form method="post" action="%s" class="lp-form">',
 		esc_url( admin_url( 'admin-post.php' ) )
@@ -289,9 +296,9 @@ function livepress_render_settings() {
 	echo '<input type="hidden" name="action" value="livepress_save_settings">';
 
 	$hints = array(
-		'livepress_frontend'          => 'The address of the Next.js site this WordPress feeds. The editor previews it in an iframe, so it must be reachable from your browser.',
-		'livepress_revalidate_secret' => 'Shared with the frontend so a save can rebuild the affected pages in seconds instead of waiting for a cache to expire. It must match the frontend environment exactly.',
-		'livepress_legacy_host'       => 'Optional, and only during a migration. The domain the site used to run on — the Images screen flags any asset still pointing there, because those stop resolving the hour that domain changes hands.',
+		'livepress_frontend'          => __( 'The address of the Next.js site this WordPress feeds. The editor previews it in an iframe, so it must be reachable from your browser.', 'livepress' ),
+		'livepress_revalidate_secret' => __( 'Shared with the frontend so a save can rebuild the affected pages in seconds instead of waiting for a cache to expire. It must match the frontend environment exactly.', 'livepress' ),
+		'livepress_legacy_host'       => __( 'Optional, and only during a migration. The domain the site used to run on — the Images screen flags any asset still pointing there, because those stop resolving the hour that domain changes hands.', 'livepress' ),
 	);
 
 	foreach ( livepress_settings_fields() as $option => $meta ) {
@@ -308,8 +315,8 @@ function livepress_render_settings() {
 	}
 
 	printf(
-		'<div class="lp-form-actions"><button type="submit" class="lp-btn lp-btn--primary">Save settings</button>'
-			. '<a class="lp-btn" href="%s">Generate a new secret</a></div>',
+		'<div class="lp-form-actions"><button type="submit" class="lp-btn lp-btn--primary">' . esc_html__( 'Save settings', 'livepress' ) . '</button>'
+			. '<a class="lp-btn" href="%s">' . esc_html__( 'Generate a new secret', 'livepress' ) . '</a></div>',
 		esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=livepress_generate_secret' ), 'livepress_generate_secret' ) )
 	);
 	echo '</form>';

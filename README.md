@@ -204,9 +204,8 @@ nothing to say otherwise.
 
 ## Translation
 
-Text domain `livepress`. The infrastructure is complete and the editor, menu
-titles, screen headings and empty states are wrapped; the strings inside each
-screen's own table markup are not yet. See `plugin/languages/README.md` for
+Text domain `livepress`, and the pass is complete — every user-facing string
+in the plugin and the editor is translatable. See `plugin/languages/README.md` for
 how to generate the template — and note `make-json` as well as `make-pot`,
 since `wp.i18n` reads JSON and skipping it leaves the whole editor in English
 while the admin screens change around it.

@@ -132,12 +132,12 @@ add_action( 'rest_api_init', function () {
 			$token   = (string) $request['token'];
 			$post_id = livepress_preview_post_for_token( $token );
 			if ( ! $post_id ) {
-				return new WP_Error( 'not_found', 'No preview for that link.', array( 'status' => 404 ) );
+				return new WP_Error( 'not_found', __( 'No preview for that link.', 'livepress' ), array( 'status' => 404 ) );
 			}
 			$pending = get_post_meta( $post_id, LIVEPRESS_SCHEDULE_KEY, true );
 			$post    = get_post( $post_id );
 			if ( ! is_array( $pending ) || empty( $pending['values'] ) || ! $post ) {
-				return new WP_Error( 'not_found', 'No preview for that link.', array( 'status' => 404 ) );
+				return new WP_Error( 'not_found', __( 'No preview for that link.', 'livepress' ), array( 'status' => 404 ) );
 			}
 
 			$schema = livepress_schema();
@@ -206,7 +206,7 @@ add_action(
 						$given   = isset( $body['values'] ) && is_array( $body['values'] ) ? $body['values'] : array();
 
 						if ( $when <= time() ) {
-							return new WP_Error( 'bad_time', 'Choose a time in the future.', array( 'status' => 400 ) );
+							return new WP_Error( 'bad_time', __( 'Choose a time in the future.', 'livepress' ), array( 'status' => 400 ) );
 						}
 
 						/* Only keys this plugin actually owns, and only strings.
@@ -221,11 +221,11 @@ add_action(
 							}
 						}
 						if ( ! $values ) {
-							return new WP_Error( 'no_values', 'Nothing to schedule.', array( 'status' => 400 ) );
+							return new WP_Error( 'no_values', __( 'Nothing to schedule.', 'livepress' ), array( 'status' => 400 ) );
 						}
 
 						if ( ! livepress_schedule_change( $post_id, $values, $when ) ) {
-							return new WP_Error( 'failed', 'Could not schedule that change.', array( 'status' => 400 ) );
+							return new WP_Error( 'failed', __( 'Could not schedule that change.', 'livepress' ), array( 'status' => 400 ) );
 						}
 						return rest_ensure_response( livepress_pending_for( $post_id ) );
 					},
@@ -307,7 +307,7 @@ add_action(
 	function () {
 		$post_id = isset( $_GET['post'] ) ? (int) $_GET['post'] : 0;
 		if ( ! $post_id || ! current_user_can( 'edit_post', $post_id ) ) {
-			wp_die( 'You do not have permission to do that.', 403 );
+			wp_die( __( 'You do not have permission to do that.', 'livepress' ), 403 );
 		}
 		check_admin_referer( 'livepress_cancel_scheduled_' . $post_id );
 		livepress_cancel_scheduled( $post_id );
@@ -337,7 +337,7 @@ function livepress_render_scheduled() {
 			__( 'Nothing scheduled', 'livepress' ),
 			__( 'Open a page in the editor, make your changes, and choose a time instead of publishing straight away. It will appear here until it goes out.', 'livepress' ),
 			sprintf(
-				'<a class="lp-btn" href="%s">Go to Site Pages</a>',
+				'<a class="lp-btn" href="%s">' . esc_html__( 'Go to Site Pages', 'livepress' ) . '</a>',
 				esc_url( admin_url( 'edit.php?post_type=sitepage' ) )
 			)
 		);
@@ -354,17 +354,17 @@ function livepress_render_scheduled() {
 
 	livepress_figures(
 		array(
-			array( 'value' => count( $pending ), 'label' => count( $pending ) === 1 ? 'change waiting' : 'changes waiting' ),
-			array( 'value' => date_i18n( 'j M H:i', $pending[0]['at'] ), 'label' => 'next one out' ),
-			array( 'value' => $broken, 'label' => 'missing a cron event', 'tone' => $broken ? 'danger' : 'quiet' ),
+			array( 'value' => count( $pending ), 'label' => count( $pending ) === 1 ? __( 'change waiting', 'livepress' ) : __( 'changes waiting', 'livepress' ) ),
+			array( 'value' => date_i18n( 'j M H:i', $pending[0]['at'] ), 'label' => __( 'next one out', 'livepress' ) ),
+			array( 'value' => $broken, 'label' => __( 'missing a cron event', 'livepress' ), 'tone' => $broken ? 'danger' : 'quiet' ),
 		)
 	);
 
 	livepress_table_open(
 		array(
-			array( 'Goes live', 'lp-shrink' ),
+			array( __( 'Goes live', 'livepress' ), 'lp-shrink' ),
 			array( 'Page', '' ),
-			array( 'Scheduled by', 'lp-shrink' ),
+			array( __( 'Scheduled by', 'livepress' ), 'lp-shrink' ),
 			array( 'Fields', '' ),
 			array( '', 'lp-shrink' ),
 		)
@@ -383,16 +383,16 @@ function livepress_render_scheduled() {
 				. '<td><a class="lp-title" href="%s">%s</a><span class="lp-sub">%s</span></td>'
 				. '<td class="lp-shrink">%s</td>'
 				. '<td>%s</td>'
-				. '<td class="lp-shrink"><a class="lp-btn lp-btn--sm" href="%s">Cancel</a></td>'
+				. '<td class="lp-shrink"><a class="lp-btn lp-btn--sm" href="%s">' . esc_html__( 'Cancel', 'livepress' ) . '</a></td>'
 			. '</tr>',
 			esc_html( date_i18n( 'j M Y H:i', $row['at'] ) ),
 			$row['next']
 				? '<span class="lp-when-rel">in ' . esc_html( human_time_diff( time(), $row['at'] ) ) . '</span>'
-				: '<span class="lp-pill lp-pill--missing">cron event missing</span>',
+				: '<span class="lp-pill lp-pill--missing">' . esc_html__( 'cron event missing', 'livepress' ) . '</span>',
 			esc_url( admin_url( 'admin.php?page=' . LIVEPRESS_PAGE . '&post=' . $row['post']->ID ) ),
 			esc_html( $row['post']->post_title ),
 			esc_html( $row['post']->post_name ),
-			$user ? esc_html( $user->display_name ) : '<span class="lp-muted">unknown</span>',
+			$user ? esc_html( $user->display_name ) : '<span class="lp-muted">' . esc_html__( 'unknown', 'livepress' ) . '</span>',
 			esc_html( implode( ', ', $labels ) ),
 			esc_url( $url )
 		);

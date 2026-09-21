@@ -138,7 +138,7 @@ add_action(
 				printf(
 					'<strong><a href="%s">%s</a></strong>%s',
 					esc_url( (string) get_edit_post_link( $post_id ) ),
-					esc_html( '' !== $name ? $name : '(no name given)' ),
+					esc_html( '' !== $name ? $name : __( '(no name given)', 'livepress' ) ),
 					'' !== $get( 'company' ) ? '<br><span style="color:#6b7386">' . esc_html( $get( 'company' ) ) . '</span>' : ''
 				);
 				break;
@@ -167,7 +167,7 @@ add_action(
 				$parts = array_map( 'trim', explode( '—', $source, 2 ) );
 				printf(
 					'%s%s<br><span style="color:#6b7386">%s</span>',
-					esc_html( $parts[0] ?: 'unknown form' ),
+					esc_html( $parts[0] ?: __( 'unknown form', 'livepress' ) ),
 					'' !== $kind && 'enquiry' !== $kind ? ' <em>(' . esc_html( $kind ) . ')</em>' : '',
 					esc_html( $parts[1] ?? '' )
 				);
@@ -206,17 +206,17 @@ add_action(
  */
 function livepress_form_edit_link( string $edited_in ): string {
 	if ( '' === $edited_in || false === strpos( $edited_in, '#' ) ) {
-		return '<span class="lp-pill lp-pill--quiet">in the component</span>';
+		return '<span class="lp-pill lp-pill--quiet">' . esc_html__( 'in the component', 'livepress' ) . '</span>';
 	}
 
 	list( $slug, $section ) = explode( '#', $edited_in, 2 );
 	$post = get_page_by_path( $slug, OBJECT, 'sitepage' );
 	if ( ! $post ) {
-		return '<span class="lp-pill lp-pill--quiet">in the component</span>';
+		return '<span class="lp-pill lp-pill--quiet">' . esc_html__( 'in the component', 'livepress' ) . '</span>';
 	}
 
 	return sprintf(
-		'<a class="lp-btn lp-btn--sm" href="%s">Edit wording</a>',
+		'<a class="lp-btn lp-btn--sm" href="%s">' . esc_html__( 'Edit wording', 'livepress' ) . '</a>',
 		esc_url(
 			admin_url(
 				'admin.php?page=' . LIVEPRESS_PAGE . '&post=' . $post->ID . '&focus=' . rawurlencode( $section )
@@ -248,7 +248,7 @@ function livepress_render_forms() {
 		__( 'Forms', 'livepress' ),
 		__( 'Every form on the site, what it collects, and where it appears. The forms are built into the frontend with layouts made for where they sit, so this lists them rather than rendering them — it is the answer to "what forms do we have", which otherwise means reading the frontend source.', 'livepress' ),
 		sprintf(
-			'<a class="lp-btn" href="%s">See the submissions</a>',
+			'<a class="lp-btn" href="%s">' . esc_html__( 'See the submissions', 'livepress' ) . '</a>',
 			esc_url( admin_url( 'edit.php?post_type=' . LIVEPRESS_ENQUIRY_TYPE ) )
 		)
 	);
@@ -264,10 +264,10 @@ function livepress_render_forms() {
 
 	livepress_figures(
 		array(
-			array( 'value' => count( $forms ), 'label' => 'forms on the site' ),
-			array( 'value' => $total, 'label' => 'submissions all time' ),
-			array( 'value' => $recent, 'label' => 'in the last 7 days' ),
-			array( 'value' => $quiet, 'label' => 'never submitted', 'tone' => $quiet ? 'warn' : 'quiet' ),
+			array( 'value' => count( $forms ), 'label' => __( 'forms on the site', 'livepress' ) ),
+			array( 'value' => $total, 'label' => __( 'submissions all time', 'livepress' ) ),
+			array( 'value' => $recent, 'label' => __( 'in the last 7 days', 'livepress' ) ),
+			array( 'value' => $quiet, 'label' => __( 'never submitted', 'livepress' ), 'tone' => $quiet ? 'warn' : 'quiet' ),
 		)
 	);
 
@@ -275,11 +275,11 @@ function livepress_render_forms() {
 		array(
 			array( 'Form', '' ),
 			array( 'Type', 'lp-shrink' ),
-			array( 'Appears on', '' ),
+			array( __( 'Appears on', 'livepress' ), '' ),
 			array( 'Collects', '' ),
 			array( 'Wording', 'lp-shrink' ),
 			array( 'Submissions', 'lp-num' ),
-			array( 'Last one', 'lp-shrink' ),
+			array( __( 'Last one', 'livepress' ), 'lp-shrink' ),
 		)
 	);
 

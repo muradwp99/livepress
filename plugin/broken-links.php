@@ -166,7 +166,7 @@ add_action(
 	'admin_post_livepress_broken',
 	function () {
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_die( 'You do not have permission to do that.', 403 );
+			wp_die( __( 'You do not have permission to do that.', 'livepress' ), 403 );
 		}
 		check_admin_referer( 'livepress_broken' );
 
@@ -219,7 +219,7 @@ function livepress_render_broken() {
 			? sprintf(
 				'<form method="post" action="%s" class="lp-inline-form">%s<input type="hidden" name="action" value="livepress_broken">'
 					. '<button class="lp-btn lp-btn--danger" type="submit" name="what" value="clear" '
-					. 'onclick="return confirm(\'Clear the whole list?\')">Clear list</button></form>',
+					. 'onclick="return confirm(&#039;' . esc_attr( esc_js( __( 'Clear the whole list?', 'livepress' ) ) ) . '&#039;)">' . esc_html__( 'Clear list', 'livepress' ) . '</button></form>',
 				$action,
 				$nonce
 			)
@@ -232,11 +232,11 @@ function livepress_render_broken() {
 		   them in at build time via next.config.mjs — so this is pending until
 		   the next deploy, and saying otherwise would send somebody to check a
 		   URL that is still 404ing and conclude the button is broken. */
-		'redirected' => array( 'ok', 'Redirect saved in Rank Math. It reaches visitors at the next frontend build — until then the address still 404s.' ),
-		'ignored'    => array( 'ok', 'Removed from the list. It will come back if somebody asks for it again.' ),
-		'cleared'    => array( 'ok', 'List cleared.' ),
-		'bad_target' => array( '', 'That redirect target was not a site path or a full URL, so nothing was created.' ),
-		'failed'     => array( '', 'Rank Math would not accept the redirect. Check that its Redirections module is enabled.' ),
+		'redirected' => array( 'ok', __( 'Redirect saved in Rank Math. It reaches visitors at the next frontend build — until then the address still 404s.', 'livepress' ) ),
+		'ignored'    => array( 'ok', __( 'Removed from the list. It will come back if somebody asks for it again.', 'livepress' ) ),
+		'cleared'    => array( 'ok', __( 'List cleared.', 'livepress' ) ),
+		'bad_target' => array( '', __( 'That redirect target was not a site path or a full URL, so nothing was created.', 'livepress' ) ),
+		'failed'     => array( '', __( 'Rank Math would not accept the redirect. Check that its Redirections module is enabled.', 'livepress' ) ),
 	) as $param => $meta ) {
 		if ( isset( $_GET[ $param ] ) ) {
 			printf(
@@ -252,10 +252,10 @@ function livepress_render_broken() {
 
 	livepress_figures(
 		array(
-			array( 'value' => count( $log ), 'label' => 'addresses missed', 'tone' => $log ? 'warn' : 'quiet' ),
-			array( 'value' => $hits, 'label' => 'requests for them' ),
-			array( 'value' => $refd, 'label' => 'linked from somewhere', 'tone' => $refd ? 'danger' : 'quiet' ),
-			array( 'value' => count( $log ) . ' / ' . LIVEPRESS_404_MAX, 'label' => 'list capacity', 'tone' => 'quiet' ),
+			array( 'value' => count( $log ), 'label' => __( 'addresses missed', 'livepress' ), 'tone' => $log ? 'warn' : 'quiet' ),
+			array( 'value' => $hits, 'label' => __( 'requests for them', 'livepress' ) ),
+			array( 'value' => $refd, 'label' => __( 'linked from somewhere', 'livepress' ), 'tone' => $refd ? 'danger' : 'quiet' ),
+			array( 'value' => count( $log ) . ' / ' . LIVEPRESS_404_MAX, 'label' => __( 'list capacity', 'livepress' ), 'tone' => 'quiet' ),
 		)
 	);
 
@@ -271,10 +271,10 @@ function livepress_render_broken() {
 	livepress_table_open(
 		array(
 			array( 'Requests', 'lp-num' ),
-			array( 'Address asked for', '' ),
-			array( 'Linked from', 'lp-shrink' ),
-			array( 'Last seen', 'lp-shrink' ),
-			array( 'Redirect it to', 'lp-shrink' ),
+			array( __( 'Address asked for', 'livepress' ), '' ),
+			array( __( 'Linked from', 'livepress' ), 'lp-shrink' ),
+			array( __( 'Last seen', 'livepress' ), 'lp-shrink' ),
+			array( __( 'Redirect it to', 'livepress' ), 'lp-shrink' ),
 		)
 	);
 
@@ -290,8 +290,8 @@ function livepress_render_broken() {
 						. '<input type="hidden" name="action" value="livepress_broken">'
 						. '<input type="hidden" name="path" value="%s">'
 						. '<input class="lp-input lp-input--sm" type="text" name="to" placeholder="/where-it-should-go" required>'
-						. '<button class="lp-btn lp-btn--sm" type="submit" name="what" value="redirect">Redirect</button>'
-						. '<button class="lp-btn lp-btn--sm" type="submit" name="what" value="ignore" title="Remove from this list without creating a redirect">Ignore</button>'
+						. '<button class="lp-btn lp-btn--sm" type="submit" name="what" value="redirect">' . esc_html__( 'Redirect', 'livepress' ) . '</button>'
+						. '<button class="lp-btn lp-btn--sm" type="submit" name="what" value="ignore" title="Remove from this list without creating a redirect">' . esc_html__( 'Ignore', 'livepress' ) . '</button>'
 					. '</form>'
 				. '</td>'
 			. '</tr>',

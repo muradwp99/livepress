@@ -135,7 +135,7 @@ function livepress_run_asset_check( int $budget_seconds = 45 ): array {
 		if ( $code < 200 || $code >= 400 ) {
 			$report['broken'][] = array(
 				'url'   => $url,
-				'code'  => $code ? $code : ( is_wp_error( $res ) ? $res->get_error_message() : 'no response' ),
+				'code'  => $code ? $code : ( is_wp_error( $res ) ? $res->get_error_message() : __( 'no response', 'livepress' ) ),
 				'where' => $where,
 			);
 		}
@@ -149,7 +149,7 @@ add_action(
 	'admin_post_livepress_check_assets',
 	function () {
 		if ( ! current_user_can( 'edit_pages' ) ) {
-			wp_die( 'You do not have permission to do that.', 403 );
+			wp_die( __( 'You do not have permission to do that.', 'livepress' ), 403 );
 		}
 		check_admin_referer( 'livepress_check_assets' );
 		livepress_run_asset_check();
@@ -173,14 +173,14 @@ function livepress_render_assets() {
 	livepress_screen_open(
 		__( 'Images', 'livepress' ),
 		__( 'Checks that every image a page points at still resolves. The build gate checks the rendered site; this checks the values as stored, so a deleted render or a mistyped URL shows up here rather than after the next deploy.', 'livepress' ),
-		sprintf( '<a class="lp-btn lp-btn--primary" href="%s">Run check now</a>', esc_url( $run ) )
+		sprintf( '<a class="lp-btn lp-btn--primary" href="%s">' . esc_html__( 'Run check now', 'livepress' ) . '</a>', esc_url( $run ) )
 	);
 
 	if ( ! is_array( $report ) ) {
 		livepress_empty_state(
 			__( 'Not run yet', 'livepress' ),
 			__( 'Checking fetches every image URL stored on a page, so it takes around twenty seconds. The result is kept for an hour.', 'livepress' ),
-			sprintf( '<a class="lp-btn lp-btn--primary" href="%s">Run the first check</a>', esc_url( $run ) )
+			sprintf( '<a class="lp-btn lp-btn--primary" href="%s">' . esc_html__( 'Run the first check', 'livepress' ) . '</a>', esc_url( $run ) )
 		);
 		livepress_screen_close();
 		return;
@@ -191,27 +191,27 @@ function livepress_render_assets() {
 
 	livepress_figures(
 		array(
-			array( 'value' => (int) $report['checked'] . ' / ' . (int) $report['total'], 'label' => 'images checked' ),
-			array( 'value' => $broken, 'label' => 'not loading', 'tone' => $broken ? 'danger' : 'quiet' ),
-			array( 'value' => $old, 'label' => 'on the old domain', 'tone' => $old ? 'danger' : 'quiet' ),
+			array( 'value' => (int) $report['checked'] . ' / ' . (int) $report['total'], 'label' => __( 'images checked', 'livepress' ) ),
+			array( 'value' => $broken, 'label' => __( 'not loading', 'livepress' ), 'tone' => $broken ? 'danger' : 'quiet' ),
+			array( 'value' => $old, 'label' => __( 'on the old domain', 'livepress' ), 'tone' => $old ? 'danger' : 'quiet' ),
 			array(
 				'value' => human_time_diff( (int) $report['ran_at'] ) . ' ago',
-				'label' => empty( $report['truncated'] ) ? 'last run' : 'last run — stopped early on time',
+				'label' => empty( $report['truncated'] ) ? __( 'last run', 'livepress' ) : __( 'last run — stopped early on time', 'livepress' ),
 				'tone'  => 'quiet',
 			),
 		)
 	);
 
 	if ( ! $broken && ! $old ) {
-		echo '<div class="lp-notice lp-notice--ok"><p>Every image resolves, and none point at the old domain.</p></div>';
+		echo '<div class="lp-notice lp-notice--ok"><p>' . esc_html__( 'Every image resolves, and none point at the old domain.', 'livepress' ) . '</p></div>';
 		livepress_screen_close();
 		return;
 	}
 
 	foreach (
 		array(
-			'broken'   => array( 'Not loading', 'The URL is stored on a page but does not answer. Either the render was deleted from the media library or the address was mistyped.' ),
-			'old_host' => array( 'Pointing at the previous site', sprintf( 'These resolve today because %s still serves the old WordPress. The hour it serves the new site, every one of them 404s at once.', livepress_legacy_host() ) ),
+			'broken'   => array( __( 'Not loading', 'livepress' ), __( 'The URL is stored on a page but does not answer. Either the render was deleted from the media library or the address was mistyped.', 'livepress' ) ),
+			'old_host' => array( __( 'Pointing at the previous site', 'livepress' ), sprintf( __( 'These resolve today because %s still serves the old WordPress. The hour it serves the new site, every one of them 404s at once.', 'livepress' ), livepress_legacy_host() ) ),
 		) as $key => $section
 	) {
 		if ( empty( $report[ $key ] ) ) {
@@ -222,14 +222,14 @@ function livepress_render_assets() {
 			array(
 				array( 'Status', 'lp-shrink' ),
 				array( 'Image', '' ),
-				array( 'Used on', '' ),
+				array( __( 'Used on', 'livepress' ), '' ),
 			)
 		);
 		foreach ( $report[ $key ] as $row ) {
 			printf(
 				'<tr><td class="lp-shrink"><span class="lp-pill lp-pill--missing">%s</span></td>'
 					. '<td><span class="lp-sub">%s</span></td><td class="lp-muted">%s</td></tr>',
-				esc_html( (string) ( $row['code'] ?? 'old host' ) ),
+				esc_html( (string) ( $row['code'] ?? __( 'old host', 'livepress' ) ) ),
 				esc_html( $row['url'] ),
 				esc_html( implode( ', ', $row['where'] ) )
 			);

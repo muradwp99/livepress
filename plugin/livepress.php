@@ -3,7 +3,7 @@
  * Plugin Name: LivePress
  * Plugin URI:  https://github.com/muradwp99/livepress
  * Description: Realtime visual editing for headless WordPress. One "Site Pages" list; every page opens a fullscreen editor — fields left, live preview of your real frontend right — streaming every keystroke into the rendered site before saving.
- * Version:     1.4.0
+ * Version:     1.5.0
  * Author:      Murad
  * License:     MIT
  * Text Domain: livepress
@@ -123,9 +123,9 @@ function livepress_collections(): array {
 add_action( 'init', function () {
 	register_post_type( 'sitepage', array(
 		'labels'        => array(
-			'name'          => 'Site Pages',
-			'singular_name' => 'Site Page',
-			'all_items'     => 'All Site Pages',
+			'name'          => __( 'Site Pages', 'livepress' ),
+			'singular_name' => __( 'Site Page', 'livepress' ),
+			'all_items'     => __( 'All Site Pages', 'livepress' ),
 		),
 		'public'        => false,
 		'show_ui'       => true,
@@ -167,7 +167,7 @@ add_action( 'rest_api_init', function () {
 		'callback'            => function ( $request ) {
 			$key = sanitize_key( $request['key'] );
 			if ( ! in_array( $key, livepress_public_option_keys(), true ) ) {
-				return new WP_Error( 'not_found', 'Unknown global', array( 'status' => 404 ) );
+				return new WP_Error( 'not_found', __( 'Unknown global', 'livepress' ), array( 'status' => 404 ) );
 			}
 			/*
 			 * LiteSpeed was caching this route — measured `x-litespeed-cache:
@@ -193,11 +193,11 @@ add_action( 'rest_api_init', function () {
 		'callback'            => function ( $request ) {
 			$key = sanitize_key( $request['key'] );
 			if ( ! in_array( $key, livepress_option_keys(), true ) ) {
-				return new WP_Error( 'not_found', 'Unknown global', array( 'status' => 404 ) );
+				return new WP_Error( 'not_found', __( 'Unknown global', 'livepress' ), array( 'status' => 404 ) );
 			}
 			$data = $request->get_json_params();
 			if ( null === $data ) {
-				return new WP_Error( 'bad_request', 'Body must be JSON', array( 'status' => 400 ) );
+				return new WP_Error( 'bad_request', __( 'Body must be JSON', 'livepress' ), array( 'status' => 400 ) );
 			}
 			update_option( 'livepress_' . $key, $data );
 
@@ -258,7 +258,10 @@ function livepress_render_editor() {
 	$post    = $post_id ? get_post( $post_id ) : null;
 	$allowed = $post && ( 'sitepage' === $post->post_type || in_array( $post->post_type, livepress_collections(), true ) );
 	if ( ! $allowed ) {
-		echo '<div class="notice notice-error"><p>No LivePress-enabled document selected.</p></div>';
+		printf(
+			'<div class="notice notice-error"><p>%s</p></div>',
+			esc_html__( 'No LivePress-enabled document selected.', 'livepress' )
+		);
 		return;
 	}
 	$schemas       = livepress_schema();
@@ -267,7 +270,11 @@ function livepress_render_editor() {
 		? ( $schemas[ 'collection:' . $post->post_type ] ?? null )
 		: ( $schemas[ $post->post_name ] ?? null );
 	if ( ! $schema ) {
-		echo '<div class="notice notice-error"><p>No LivePress schema for "' . esc_html( $post->post_name ) . '".</p></div>';
+		printf(
+			'<div class="notice notice-error"><p>%s</p></div>',
+			/* translators: %s is the page slug with no schema. */
+			esc_html( sprintf( __( 'No LivePress schema for "%s".', 'livepress' ), $post->post_name ) )
+		);
 		return;
 	}
 	$frontend_path = str_replace( '{slug}', $post->post_name, $schema['frontendPath'] );
@@ -366,25 +373,25 @@ function livepress_design_tokens(): array {
 		array(
 			'key'      => 'gold500',
 			'label'    => 'Accent',
-			'hint'     => 'The brand gold. Buttons, links, rules, and every highlight on the site.',
+			'hint'     => __( 'The brand gold. Buttons, links, rules, and every highlight on the site.', 'livepress' ),
 			'fallback' => '#c3a363',
 		),
 		array(
 			'key'      => 'gold400',
 			'label'    => 'Accent — light',
-			'hint'     => 'Hover states and the lighter half of gradients on the accent.',
+			'hint'     => __( 'Hover states and the lighter half of gradients on the accent.', 'livepress' ),
 			'fallback' => '#d9be84',
 		),
 		array(
 			'key'      => 'gold300',
 			'label'    => 'Accent — lightest',
-			'hint'     => 'Accent text on a dark panel, where the full gold is too heavy.',
+			'hint'     => __( 'Accent text on a dark panel, where the full gold is too heavy.', 'livepress' ),
 			'fallback' => '#e6d3a8',
 		),
 		array(
 			'key'      => 'ink950',
-			'label'    => 'Page background',
-			'hint'     => 'The near-black the whole site sits on.',
+			'label'    => __( 'Page background', 'livepress' ),
+			'hint'     => __( 'The near-black the whole site sits on.', 'livepress' ),
 			'fallback' => '#05060a',
 		),
 	);
@@ -440,7 +447,10 @@ add_action( 'admin_init', function () {
 } );
 
 function livepress_render_menus() {
-	echo '<div class="notice notice-error"><p>The site-chrome document is missing, so there is no navigation to edit. Re-seed it and this screen will open it.</p></div>';
+	printf(
+		'<div class="notice notice-error"><p>%s</p></div>',
+		esc_html__( 'The site-chrome document is missing, so there is no navigation to edit. Re-seed it and this screen will open it.', 'livepress' )
+	);
 }
 function livepress_render_design() {
 	livepress_render_globals_editor( 'design', 'Design' );
@@ -798,14 +808,14 @@ add_action(
 		$index   = isset( $_GET['i'] ) ? (int) $_GET['i'] : -1;
 
 		if ( ! $post_id || ! current_user_can( 'edit_post', $post_id ) ) {
-			wp_die( 'You do not have permission to restore this field.', 403 );
+			wp_die( __( 'You do not have permission to restore this field.', 'livepress' ), 403 );
 		}
 		check_admin_referer( 'livepress_restore_' . $post_id . '_' . $index );
 
 		$history = get_post_meta( $post_id, LIVEPRESS_HISTORY_KEY, true );
 		$history = is_array( $history ) ? $history : array();
 		if ( ! isset( $history[ $index ] ) ) {
-			wp_die( 'That history entry no longer exists.', 404 );
+			wp_die( __( 'That history entry no longer exists.', 'livepress' ), 404 );
 		}
 
 		$entry = $history[ $index ];

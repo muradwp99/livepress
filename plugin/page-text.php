@@ -154,7 +154,7 @@ add_action(
 	'admin_post_livepress_sync_text',
 	function () {
 		if ( ! current_user_can( 'edit_pages' ) ) {
-			wp_die( 'You do not have permission to do that.', 403 );
+			wp_die( __( 'You do not have permission to do that.', 'livepress' ), 403 );
 		}
 		check_admin_referer( 'livepress_sync_text' );
 

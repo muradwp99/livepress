@@ -319,23 +319,24 @@ function livepress_render_health() {
 	livepress_screen_open(
 		__( 'Content health', 'livepress' ),
 		__( 'Where the work is unfinished, across every managed page at once. A field with no saved value but a built-in default is not counted as empty — the page renders that copy, and counting it made the first version report every page as broken.', 'livepress' ),
-		sprintf( '<a class="lp-btn" href="%s">Rebuild page text</a>', esc_url( $sync ) )
+		sprintf( '<a class="lp-btn" href="%s">' . esc_html__( 'Rebuild page text', 'livepress' ) . '</a>', esc_url( $sync ) )
 	);
 
 	if ( isset( $_GET['synced'] ) ) {
 		printf(
-			'<div class="lp-notice lp-notice--ok"><p>Rebuilt the analysable text on %d pages. Rank Math scores them against this.</p></div>',
-			(int) $_GET['synced']
+			'<div class="lp-notice lp-notice--ok"><p>%s</p></div>',
+			/* translators: %d is how many pages were rebuilt. */
+			esc_html( sprintf( __( 'Rebuilt the analysable text on %d pages. Rank Math scores them against this.', 'livepress' ), (int) $_GET['synced'] ) )
 		);
 	}
 
 	livepress_figures(
 		array(
-			array( 'value' => count( $rows ), 'label' => 'pages managed' ),
-			array( 'value' => $need_seo, 'label' => 'missing SEO', 'tone' => $need_seo ? 'danger' : 'quiet' ),
-			array( 'value' => $need_kw, 'label' => 'no focus keyword', 'tone' => $need_kw ? 'warn' : 'quiet' ),
-			array( 'value' => $need_fill, 'label' => 'with empty fields', 'tone' => $need_fill ? 'warn' : 'quiet' ),
-			array( 'value' => $need_alt, 'label' => 'images without alt text', 'tone' => $need_alt ? 'danger' : 'quiet' ),
+			array( 'value' => count( $rows ), 'label' => __( 'pages managed', 'livepress' ) ),
+			array( 'value' => $need_seo, 'label' => __( 'missing SEO', 'livepress' ), 'tone' => $need_seo ? 'danger' : 'quiet' ),
+			array( 'value' => $need_kw, 'label' => __( 'no focus keyword', 'livepress' ), 'tone' => $need_kw ? 'warn' : 'quiet' ),
+			array( 'value' => $need_fill, 'label' => __( 'with empty fields', 'livepress' ), 'tone' => $need_fill ? 'warn' : 'quiet' ),
+			array( 'value' => $need_alt, 'label' => __( 'images without alt text', 'livepress' ), 'tone' => $need_alt ? 'danger' : 'quiet' ),
 		)
 	);
 
@@ -351,14 +352,14 @@ function livepress_render_health() {
 	livepress_table_open(
 		array(
 			array( 'Page', '' ),
-			array( 'SEO title', 'lp-shrink' ),
+			array( __( 'SEO title', 'livepress' ), 'lp-shrink' ),
 			array( 'Description', 'lp-shrink' ),
-			array( 'Focus keyword', 'lp-shrink' ),
-			array( 'Fields filled', 'lp-num' ),
-			array( 'Built-in default', 'lp-num' ),
+			array( __( 'Focus keyword', 'livepress' ), 'lp-shrink' ),
+			array( __( 'Fields filled', 'livepress' ), 'lp-num' ),
+			array( __( 'Built-in default', 'livepress' ), 'lp-num' ),
 			array( 'Words', 'lp-num' ),
-			array( 'No alt text', 'lp-num' ),
-			array( 'Last edited', 'lp-shrink' ),
+			array( __( 'No alt text', 'livepress' ), 'lp-num' ),
+			array( __( 'Last edited', 'livepress' ), 'lp-shrink' ),
 			array( '', 'lp-shrink' ),
 		)
 	);
@@ -366,7 +367,7 @@ function livepress_render_health() {
 	/* Present is a quiet mark, absent is the pill. Marking both sides makes
 	   every one of forty-eight cells shout and none of them read. */
 	$ok      = '<span class="lp-ok" aria-label="set">&#10003;</span>';
-	$missing = '<span class="lp-pill lp-pill--missing">missing</span>';
+	$missing = '<span class="lp-pill lp-pill--missing">' . esc_html__( 'missing', 'livepress' ) . '</span>';
 
 	foreach ( $rows as $r ) {
 		printf(
@@ -376,14 +377,14 @@ function livepress_render_health() {
 				. '<td class="lp-num">%d / %d</td><td class="lp-num lp-muted">%d</td>'
 				. '<td class="lp-num">%s</td><td class="lp-num">%s</td>'
 				. '<td class="lp-shrink lp-muted">%s</td>'
-				. '<td class="lp-shrink"><a class="lp-btn lp-btn--sm" href="%s">Edit</a></td>'
+				. '<td class="lp-shrink"><a class="lp-btn lp-btn--sm" href="%s">' . esc_html__( 'Edit', 'livepress' ) . '</a></td>'
 			. '</tr>',
 			esc_url( admin_url( 'admin.php?page=' . LIVEPRESS_PAGE . '&post=' . $r['id'] ) ),
 			esc_html( $r['title'] ),
 			esc_html( $r['path'] ),
 			$r['seo'] ? $ok : $missing,
 			$r['desc'] ? $ok : $missing,
-			$r['keyword'] ? $ok : '<span class="lp-pill lp-pill--warn">not set</span>',
+			$r['keyword'] ? $ok : '<span class="lp-pill lp-pill--warn">' . esc_html__( 'not set', 'livepress' ) . '</span>',
 			(int) ( $r['total'] - $r['empty'] ),
 			(int) $r['total'],
 			(int) $r['default'],
@@ -410,14 +411,18 @@ function livepress_render_history() {
 
 	if ( isset( $_GET['restored'] ) ) {
 		printf(
-			'<div class="lp-notice lp-notice--ok"><p>Restored <strong>%s</strong> to its previous value. The frontend has already been rebuilt.</p></div>',
-			esc_html( livepress_field_label( sanitize_text_field( wp_unslash( $_GET['restored'] ) ) ) )
+			'<div class="lp-notice lp-notice--ok"><p>%s</p></div>',
+			/* translators: %s is the field name, already wrapped in <strong>. */
+			sprintf(
+				__( 'Restored %s to its previous value. The frontend has already been rebuilt.', 'livepress' ),
+				'<strong>' . esc_html( livepress_field_label( sanitize_text_field( wp_unslash( $_GET['restored'] ) ) ) ) . '</strong>'
+			)
 		);
 	}
 
 	echo '<form method="get" class="lp-filter"><input type="hidden" name="page" value="livepress-history">';
-	echo '<label for="lp-history-page">Page</label>';
-	echo '<select id="lp-history-page" name="post" onchange="this.form.submit()"><option value="0">Choose a page&hellip;</option>';
+	echo '<label for="lp-history-page">' . esc_html__( 'Page', 'livepress' ) . '</label>';
+	echo '<select id="lp-history-page" name="post" onchange="this.form.submit()"><option value="0">' . esc_html__( 'Choose a page&hellip;', 'livepress' ) . '</option>';
 	foreach ( get_posts( array( 'post_type' => 'sitepage', 'numberposts' => -1, 'post_status' => 'any', 'orderby' => 'title', 'order' => 'ASC' ) ) as $p ) {
 		printf(
 			'<option value="%d"%s>%s</option>',
@@ -426,7 +431,7 @@ function livepress_render_history() {
 			esc_html( $p->post_title )
 		);
 	}
-	echo '</select><noscript><button type="submit" class="lp-btn">Show</button></noscript></form>';
+	echo '</select><noscript><button type="submit" class="lp-btn">' . esc_html__( 'Show', 'livepress' ) . '</button></noscript></form>';
 
 	if ( ! $post_id ) {
 		livepress_empty_state(
@@ -445,7 +450,7 @@ function livepress_render_history() {
 			__( 'No changes recorded yet', 'livepress' ),
 			__( 'Nothing on this page has been edited since history started. The first edit will appear here with its previous value.', 'livepress' ),
 			sprintf(
-				'<a class="lp-btn lp-btn--primary" href="%s">Open the editor</a>',
+				'<a class="lp-btn lp-btn--primary" href="%s">' . esc_html__( 'Open the editor', 'livepress' ) . '</a>',
 				esc_url( admin_url( 'admin.php?page=' . LIVEPRESS_PAGE . '&post=' . $post_id ) )
 			)
 		);
@@ -458,7 +463,7 @@ function livepress_render_history() {
 			array( 'When', 'lp-shrink' ),
 			array( 'Field', 'lp-shrink' ),
 			array( 'Who', 'lp-shrink' ),
-			array( 'Previous value', '' ),
+			array( __( 'Previous value', 'livepress' ), '' ),
 			array( '', 'lp-shrink' ),
 		)
 	);
@@ -476,15 +481,15 @@ function livepress_render_history() {
 				. '<td class="lp-shrink"><span class="lp-title">%s</span><span class="lp-sub">%s</span></td>'
 				. '<td class="lp-shrink">%s</td>'
 				. '<td><code class="lp-code">%s</code></td>'
-				. '<td class="lp-shrink"><a class="lp-btn lp-btn--sm" href="%s">Restore</a></td>'
+				. '<td class="lp-shrink"><a class="lp-btn lp-btn--sm" href="%s">' . esc_html__( 'Restore', 'livepress' ) . '</a></td>'
 			. '</tr>',
 			esc_html( $when ? date_i18n( 'j M Y H:i', $when ) : 'unknown' ),
 			esc_html( $when ? human_time_diff( $when ) . ' ago' : '' ),
 			esc_html( livepress_field_label( (string) ( $e['key'] ?? '' ) ) ),
 			esc_html( (string) ( $e['key'] ?? '' ) ),
-			$user ? esc_html( $user->display_name ) : '<span class="lp-muted">unknown</span>',
+			$user ? esc_html( $user->display_name ) : '<span class="lp-muted">' . esc_html__( 'unknown', 'livepress' ) . '</span>',
 			'' === trim( (string) ( $e['old'] ?? '' ) )
-				? '<span class="lp-muted">(was empty)</span>'
+				? '<span class="lp-muted">' . esc_html__( '(was empty)', 'livepress' ) . '</span>'
 				: esc_html( mb_substr( (string) $e['old'], 0, 600 ) ),
 			esc_url( $url )
 		);

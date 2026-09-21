@@ -141,7 +141,7 @@ add_action(
 	'admin_post_livepress_schema_action',
 	function () {
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_die( 'You do not have permission to do that.', 403 );
+			wp_die( __( 'You do not have permission to do that.', 'livepress' ), 403 );
 		}
 		check_admin_referer( 'livepress_schema_action' );
 
@@ -202,7 +202,7 @@ function livepress_render_schema_health() {
 
 	foreach ( array(
 		'moved'   => array( 'ok', 'Moved %d value(s) to <code>%s</code>.' ),
-		'deleted' => array( 'ok', 'Deleted %d stored value(s).' ),
+		'deleted' => array( 'ok', __( 'Deleted %d stored value(s).', 'livepress' ) ),
 	) as $param => $meta ) {
 		if ( ! isset( $_GET[ $param ] ) ) {
 			continue;
@@ -215,8 +215,9 @@ function livepress_render_schema_health() {
 	}
 	if ( ! empty( $_GET['skipped'] ) ) {
 		printf(
-			'<div class="lp-notice"><p>%d page(s) were left alone because the target field already holds something different. Nothing was overwritten — open those pages and merge by hand.</p></div>',
-			(int) $_GET['skipped']
+			'<div class="lp-notice"><p>%s</p></div>',
+			/* translators: %d is how many pages were untouched. */
+			esc_html( sprintf( __( '%d page(s) were left alone because the target field already holds something different. Nothing was overwritten — open those pages and merge by hand.', 'livepress' ), (int) $_GET['skipped'] ) )
 		);
 	}
 
@@ -225,10 +226,10 @@ function livepress_render_schema_health() {
 
 	livepress_figures(
 		array(
-			array( 'value' => count( $fields ), 'label' => 'fields declared' ),
-			array( 'value' => count( $orphans ), 'label' => 'orphaned keys', 'tone' => $orphans ? 'warn' : 'quiet' ),
-			array( 'value' => $total_rows, 'label' => 'stored values stranded', 'tone' => $total_rows ? 'warn' : 'quiet' ),
-			array( 'value' => size_format( $total_bytes ), 'label' => 'of content', 'tone' => 'quiet' ),
+			array( 'value' => count( $fields ), 'label' => __( 'fields declared', 'livepress' ) ),
+			array( 'value' => count( $orphans ), 'label' => __( 'orphaned keys', 'livepress' ), 'tone' => $orphans ? 'warn' : 'quiet' ),
+			array( 'value' => $total_rows, 'label' => __( 'stored values stranded', 'livepress' ), 'tone' => $total_rows ? 'warn' : 'quiet' ),
+			array( 'value' => size_format( $total_bytes ), 'label' => __( 'of content', 'livepress' ), 'tone' => 'quiet' ),
 		)
 	);
 
@@ -243,9 +244,9 @@ function livepress_render_schema_health() {
 
 	livepress_table_open(
 		array(
-			array( 'Orphaned key', 'lp-shrink' ),
-			array( 'Found on', 'lp-shrink' ),
-			array( 'What it holds', '' ),
+			array( __( 'Orphaned key', 'livepress' ), 'lp-shrink' ),
+			array( __( 'Found on', 'livepress' ), 'lp-shrink' ),
+			array( __( 'What it holds', 'livepress' ), '' ),
 			array( '', 'lp-shrink' ),
 		)
 	);
@@ -256,7 +257,7 @@ function livepress_render_schema_health() {
 		$pages   = count( $rows );
 		$nonce   = wp_nonce_field( 'livepress_schema_action', '_wpnonce', true, false );
 
-		$options = '<option value="">Move to…</option>';
+		$options = '<option value="">' . esc_html__( 'Move to…', 'livepress' ) . '</option>';
 		foreach ( $fields as $key => $label ) {
 			$options .= sprintf( '<option value="%s">%s (%s)</option>', esc_attr( $key ), esc_html( $label ), esc_html( $key ) );
 		}
@@ -271,21 +272,21 @@ function livepress_render_schema_health() {
 						. '<input type="hidden" name="action" value="livepress_schema_action">'
 						. '<input type="hidden" name="key" value="%s">'
 						. '<select name="to" class="lp-input lp-input--sm" required>%s</select>'
-						. '<button class="lp-btn lp-btn--sm" type="submit" name="what" value="remap">Remap</button>'
+						. '<button class="lp-btn lp-btn--sm" type="submit" name="what" value="remap">' . esc_html__( 'Remap', 'livepress' ) . '</button>'
 						. '<button class="lp-btn lp-btn--sm lp-btn--danger" type="submit" name="what" value="delete" '
-							. 'onclick="return confirm(\'Delete this stored content on %d page(s)? This cannot be undone.\')">Delete</button>'
+							. 'onclick="return confirm(&#039;' . esc_attr( esc_js( sprintf( /* translators: %d is how many pages hold the value. */ __( 'Delete this stored content on %d page(s)? This cannot be undone.', 'livepress' ), $pages ) ) ) . '&#039;)">' . esc_html__( 'Delete', 'livepress' ) . '</button>'
 					. '</form>'
 				. '</td>'
 			. '</tr>',
 			esc_html( $orphan['key'] ),
 			esc_html( size_format( $orphan['bytes'] ) ),
-			esc_html( $pages . ( 1 === $pages ? ' page' : ' pages' ) ),
+			/* translators: %d is how many pages hold this orphaned value. */
+			esc_html( sprintf( _n( '%d page', '%d pages', $pages, 'livepress' ), $pages ) ),
 			esc_html( mb_substr( $sample, 0, 220 ) ),
 			esc_url( admin_url( 'admin-post.php' ) ),
 			$nonce,
 			esc_attr( $orphan['key'] ),
-			$options,
-			$pages
+			$options
 		);
 	}
 

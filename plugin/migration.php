@@ -155,7 +155,7 @@ add_action(
 	'admin_post_livepress_migration',
 	function () {
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_die( 'You do not have permission to do that.', 403 );
+			wp_die( __( 'You do not have permission to do that.', 'livepress' ), 403 );
 		}
 		check_admin_referer( 'livepress_migration' );
 
@@ -208,7 +208,7 @@ function livepress_render_migration() {
 				. '<button class="lp-btn lp-btn--primary" type="submit" name="what" value="restart">%s</button></form>',
 			$action,
 			$nonce,
-			$done ? 'Run again' : 'Run the check'
+			$done ? __( 'Run again', 'livepress' ) : __( 'Run the check', 'livepress' )
 		);
 
 	livepress_screen_open(
@@ -228,10 +228,10 @@ function livepress_render_migration() {
 	printf(
 		'<form method="post" action="%s" class="lp-form"><div class="lp-setting">%s'
 			. '<input type="hidden" name="action" value="livepress_migration">'
-			. '<label class="lp-label" for="lp-sitemap">Old sitemap</label>'
+			. '<label class="lp-label" for="lp-sitemap">' . esc_html__( 'Old sitemap', 'livepress' ) . '</label>'
 			. '<input class="lp-input" type="text" id="lp-sitemap" name="sitemap" value="%s" spellcheck="false">'
-			. '<p class="lp-hint">The sitemap the previous site publishes. An index of sitemaps is followed one level, which covers Rank Math, Yoast and WordPress core. Probing runs against %s.</p>'
-			. '</div><div class="lp-form-actions"><button class="lp-btn" type="submit" name="what" value="start">Use this sitemap and run</button></div></form>',
+			. '<p class="lp-hint">' . esc_html__( 'The sitemap the previous site publishes. An index of sitemaps is followed one level, which covers Rank Math, Yoast and WordPress core. Probing runs against %s.', 'livepress' ) . '</p>'
+			. '</div><div class="lp-form-actions"><button class="lp-btn" type="submit" name="what" value="start">' . esc_html__( 'Use this sitemap and run', 'livepress' ) . '</button></div></form>',
 		$action,
 		$nonce,
 		esc_attr( $sitemap ),
@@ -250,21 +250,28 @@ function livepress_render_migration() {
 
 	livepress_figures(
 		array(
-			array( 'value' => (int) ( $state['total'] ?? count( $done ) ), 'label' => 'URLs in the old sitemap' ),
-			array( 'value' => $counts['ok'], 'label' => 'answer directly', 'tone' => 'quiet' ),
-			array( 'value' => $counts['redirect'], 'label' => 'redirect somewhere live', 'tone' => 'quiet' ),
-			array( 'value' => $counts['lost'], 'label' => 'would be lost', 'tone' => $counts['lost'] ? 'danger' : 'quiet' ),
+			array( 'value' => (int) ( $state['total'] ?? count( $done ) ), 'label' => __( 'URLs in the old sitemap', 'livepress' ) ),
+			array( 'value' => $counts['ok'], 'label' => __( 'answer directly', 'livepress' ), 'tone' => 'quiet' ),
+			array( 'value' => $counts['redirect'], 'label' => __( 'redirect somewhere live', 'livepress' ), 'tone' => 'quiet' ),
+			array( 'value' => $counts['lost'], 'label' => __( 'would be lost', 'livepress' ), 'tone' => $counts['lost'] ? 'danger' : 'quiet' ),
 		)
 	);
 
 	if ( $queue ) {
 		printf(
-			'<div class="lp-notice"><p>Checked %d of %d so far. Each URL costs up to two requests, so this runs in batches — press Continue to carry on.</p></div>',
-			count( $done ),
-			(int) ( $state['total'] ?? count( $done ) )
+			'<div class="lp-notice"><p>%s</p></div>',
+			esc_html(
+				sprintf(
+					/* translators: %1$d is URLs checked so far, %2$d the total. Numbered
+					   because a translator may need them in the other order. */
+					__( 'Checked %1$d of %2$d so far. Each URL costs up to two requests, so this runs in batches — press Continue to carry on.', 'livepress' ),
+					count( $done ),
+					(int) ( $state['total'] ?? count( $done ) )
+				)
+			)
 		);
 	} elseif ( ! $counts['lost'] ) {
-		echo '<div class="lp-notice lp-notice--ok"><p>Every URL in the old sitemap resolves on this site. Nothing in it would 404 at cutover.</p></div>';
+		echo '<div class="lp-notice lp-notice--ok"><p>' . esc_html__( 'Every URL in the old sitemap resolves on this site. Nothing in it would 404 at cutover.', 'livepress' ) . '</p></div>';
 	}
 
 	/* Losses first: on a healthy migration this table is mostly noise, and the
@@ -282,9 +289,9 @@ function livepress_render_migration() {
 	livepress_table_open(
 		array(
 			array( '', 'lp-shrink' ),
-			array( 'Old URL', '' ),
+			array( __( 'Old URL', 'livepress' ), '' ),
 			array( 'Status', 'lp-num' ),
-			array( 'Where it lands', '' ),
+			array( __( 'Where it lands', 'livepress' ), '' ),
 		)
 	);
 
@@ -298,7 +305,7 @@ function livepress_render_migration() {
 		$verdict = livepress_migration_verdict( $row );
 		$chain   = $row['code'] === $row['final']
 			? (string) $row['code']
-			: $row['code'] . ' → ' . ( $row['final'] ?: 'no answer' );
+			: $row['code'] . ' → ' . ( $row['final'] ?: __( 'no answer', 'livepress' ) );
 
 		printf(
 			'<tr><td class="lp-shrink"><span class="lp-pill %s">%s</span></td>'
@@ -310,7 +317,7 @@ function livepress_render_migration() {
 			esc_html( $row['path'] ),
 			'lost' === $verdict ? 'lp-bad' : 'lp-muted',
 			esc_html( $chain ),
-			esc_html( $row['lands'] ?: ( 200 === $row['final'] ? 'stays here' : '' ) ),
+			esc_html( $row['lands'] ?: ( 200 === $row['final'] ? __( 'stays here', 'livepress' ) : '' ) ),
 			'' !== $row['note'] ? '<span class="lp-when-rel">' . esc_html( $row['note'] ) . '</span>' : ''
 		);
 	}

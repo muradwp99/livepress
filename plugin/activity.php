@@ -120,10 +120,10 @@ function livepress_render_activity() {
 
 	livepress_figures(
 		array(
-			array( 'value' => count( $rows ), 'label' => 'changes shown' ),
-			array( 'value' => $today, 'label' => 'in the last 24 hours' ),
-			array( 'value' => $edits, 'label' => 'field edits' ),
-			array( 'value' => count( $people ), 'label' => 'people editing', 'tone' => count( $people ) ? '' : 'quiet' ),
+			array( 'value' => count( $rows ), 'label' => __( 'changes shown', 'livepress' ) ),
+			array( 'value' => $today, 'label' => __( 'in the last 24 hours', 'livepress' ) ),
+			array( 'value' => $edits, 'label' => __( 'field edits', 'livepress' ) ),
+			array( 'value' => count( $people ), 'label' => __( 'people editing', 'livepress' ), 'tone' => count( $people ) ? '' : 'quiet' ),
 		)
 	);
 
