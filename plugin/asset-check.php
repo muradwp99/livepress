@@ -161,7 +161,7 @@ add_action(
 add_action(
 	'admin_menu',
 	function () {
-		add_submenu_page( 'livepress', 'Images', 'Images', 'edit_pages', 'livepress-assets', 'livepress_render_assets' );
+		add_submenu_page( 'livepress', __( 'Images', 'livepress' ), __( 'Images', 'livepress' ), 'edit_pages', 'livepress-assets', 'livepress_render_assets' );
 	},
 	22
 );
@@ -171,15 +171,15 @@ function livepress_render_assets() {
 	$run    = wp_nonce_url( admin_url( 'admin-post.php?action=livepress_check_assets' ), 'livepress_check_assets' );
 
 	livepress_screen_open(
-		'Images',
-		'Checks that every image a page points at still resolves. The build gate checks the rendered site; this checks the values as stored, so a deleted render or a mistyped URL shows up here rather than after the next deploy.',
+		__( 'Images', 'livepress' ),
+		__( 'Checks that every image a page points at still resolves. The build gate checks the rendered site; this checks the values as stored, so a deleted render or a mistyped URL shows up here rather than after the next deploy.', 'livepress' ),
 		sprintf( '<a class="lp-btn lp-btn--primary" href="%s">Run check now</a>', esc_url( $run ) )
 	);
 
 	if ( ! is_array( $report ) ) {
 		livepress_empty_state(
-			'Not run yet',
-			'Checking fetches every image URL stored on a page, so it takes around twenty seconds. The result is kept for an hour.',
+			__( 'Not run yet', 'livepress' ),
+			__( 'Checking fetches every image URL stored on a page, so it takes around twenty seconds. The result is kept for an hour.', 'livepress' ),
 			sprintf( '<a class="lp-btn lp-btn--primary" href="%s">Run the first check</a>', esc_url( $run ) )
 		);
 		livepress_screen_close();

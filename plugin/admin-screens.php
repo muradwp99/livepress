@@ -19,8 +19,8 @@ defined( 'ABSPATH' ) || exit;
 add_action(
 	'admin_menu',
 	function () {
-		add_submenu_page( 'livepress', 'Content health', 'Content health', 'edit_pages', 'livepress-health', 'livepress_render_health' );
-		add_submenu_page( 'livepress', 'Field history', 'Field history', 'edit_pages', 'livepress-history', 'livepress_render_history' );
+		add_submenu_page( 'livepress', __( 'Content health', 'livepress' ), __( 'Content health', 'livepress' ), 'edit_pages', 'livepress-health', 'livepress_render_health' );
+		add_submenu_page( 'livepress', __( 'Field history', 'livepress' ), __( 'Field history', 'livepress' ), 'edit_pages', 'livepress-history', 'livepress_render_history' );
 	},
 	20
 );
@@ -317,8 +317,8 @@ function livepress_render_health() {
 	$sync = wp_nonce_url( admin_url( 'admin-post.php?action=livepress_sync_text' ), 'livepress_sync_text' );
 
 	livepress_screen_open(
-		'Content health',
-		'Where the work is unfinished, across every managed page at once. A field with no saved value but a built-in default is not counted as empty — the page renders that copy, and counting it made the first version report every page as broken.',
+		__( 'Content health', 'livepress' ),
+		__( 'Where the work is unfinished, across every managed page at once. A field with no saved value but a built-in default is not counted as empty — the page renders that copy, and counting it made the first version report every page as broken.', 'livepress' ),
 		sprintf( '<a class="lp-btn" href="%s">Rebuild page text</a>', esc_url( $sync ) )
 	);
 
@@ -341,8 +341,8 @@ function livepress_render_health() {
 
 	if ( ! $rows ) {
 		livepress_empty_state(
-			'No managed pages yet',
-			'Every page defined in the LivePress schema will appear here once it exists in WordPress.'
+			__( 'No managed pages yet', 'livepress' ),
+			__( 'Every page defined in the LivePress schema will appear here once it exists in WordPress.', 'livepress' )
 		);
 		livepress_screen_close();
 		return;
@@ -404,8 +404,8 @@ function livepress_render_history() {
 	$post_id = isset( $_GET['post'] ) ? (int) $_GET['post'] : 0;
 
 	livepress_screen_open(
-		'Field history',
-		'WordPress revisions do not cover custom fields, so this is the only record of what a field held before it changed. Most recent first.'
+		__( 'Field history', 'livepress' ),
+		__( 'WordPress revisions do not cover custom fields, so this is the only record of what a field held before it changed. Most recent first.', 'livepress' )
 	);
 
 	if ( isset( $_GET['restored'] ) ) {
@@ -430,8 +430,8 @@ function livepress_render_history() {
 
 	if ( ! $post_id ) {
 		livepress_empty_state(
-			'Choose a page',
-			'Pick a page above to see every field change recorded against it, and to put any one of them back.'
+			__( 'Choose a page', 'livepress' ),
+			__( 'Pick a page above to see every field change recorded against it, and to put any one of them back.', 'livepress' )
 		);
 		livepress_screen_close();
 		return;
@@ -442,8 +442,8 @@ function livepress_render_history() {
 
 	if ( ! $history ) {
 		livepress_empty_state(
-			'No changes recorded yet',
-			'Nothing on this page has been edited since history started. The first edit will appear here with its previous value.',
+			__( 'No changes recorded yet', 'livepress' ),
+			__( 'Nothing on this page has been edited since history started. The first edit will appear here with its previous value.', 'livepress' ),
 			sprintf(
 				'<a class="lp-btn lp-btn--primary" href="%s">Open the editor</a>',
 				esc_url( admin_url( 'admin.php?page=' . LIVEPRESS_PAGE . '&post=' . $post_id ) )

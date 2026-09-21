@@ -41,7 +41,7 @@ const LIVEPRESS_404_BURST = 20;
 add_action(
 	'admin_menu',
 	function () {
-		add_submenu_page( 'livepress', 'Broken links', 'Broken links', 'manage_options', LIVEPRESS_404_PAGE, 'livepress_render_broken' );
+		add_submenu_page( 'livepress', __( 'Broken links', 'livepress' ), __( 'Broken links', 'livepress' ), 'manage_options', LIVEPRESS_404_PAGE, 'livepress_render_broken' );
 	},
 	26
 );
@@ -213,8 +213,8 @@ function livepress_render_broken() {
 	$action = esc_url( admin_url( 'admin-post.php' ) );
 
 	livepress_screen_open(
-		'Broken links',
-		'Addresses visitors asked for and this site does not have. The Cutover check covers everything the old sitemap advertised; this covers what it did not — a link somebody else published, a URL indexed years ago, an address on a business card. Ranked by how often each is asked for, because a path with forty hits and a referrer is a broken link worth fixing and a path with one hit is usually a typo.',
+		__( 'Broken links', 'livepress' ),
+		__( 'Addresses visitors asked for and this site does not have. The Cutover check covers everything the old sitemap advertised; this covers what it did not — a link somebody else published, a URL indexed years ago, an address on a business card. Ranked by how often each is asked for, because a path with forty hits and a referrer is a broken link worth fixing and a path with one hit is usually a typo.', 'livepress' ),
 		$log
 			? sprintf(
 				'<form method="post" action="%s" class="lp-inline-form">%s<input type="hidden" name="action" value="livepress_broken">'
@@ -261,8 +261,8 @@ function livepress_render_broken() {
 
 	if ( ! $log ) {
 		livepress_empty_state(
-			'Nothing has 404d',
-			'Either nobody has hit a missing page, or the frontend is not reporting them yet. Reporting needs the LivePress 404 reporter in the frontend\'s not-found route.'
+			__( 'Nothing has 404d', 'livepress' ),
+			__( 'Either nobody has hit a missing page, or the frontend is not reporting them yet. Reporting needs the LivePress 404 reporter in the frontend\'s not-found route.', 'livepress' )
 		);
 		livepress_screen_close();
 		return;

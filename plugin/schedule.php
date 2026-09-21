@@ -227,7 +227,7 @@ add_action(
 add_action(
 	'admin_menu',
 	function () {
-		add_submenu_page( 'livepress', 'Scheduled', 'Scheduled', 'edit_pages', 'livepress-scheduled', 'livepress_render_scheduled' );
+		add_submenu_page( 'livepress', __( 'Scheduled', 'livepress' ), __( 'Scheduled', 'livepress' ), 'edit_pages', 'livepress-scheduled', 'livepress_render_scheduled' );
 	},
 	23
 );
@@ -236,14 +236,14 @@ function livepress_render_scheduled() {
 	$pending = livepress_pending_changes();
 
 	livepress_screen_open(
-		'Scheduled changes',
-		'Field changes waiting to go live. These pages stay published throughout — what is scheduled is the edit, not the page. When it lands, the previous value is recorded in Field history and the frontend is rebuilt immediately.'
+		__( 'Scheduled changes', 'livepress' ),
+		__( 'Field changes waiting to go live. These pages stay published throughout — what is scheduled is the edit, not the page. When it lands, the previous value is recorded in Field history and the frontend is rebuilt immediately.', 'livepress' )
 	);
 
 	if ( ! $pending ) {
 		livepress_empty_state(
-			'Nothing scheduled',
-			'Open a page in the editor, make your changes, and choose a time instead of publishing straight away. It will appear here until it goes out.',
+			__( 'Nothing scheduled', 'livepress' ),
+			__( 'Open a page in the editor, make your changes, and choose a time instead of publishing straight away. It will appear here until it goes out.', 'livepress' ),
 			sprintf(
 				'<a class="lp-btn" href="%s">Go to Site Pages</a>',
 				esc_url( admin_url( 'edit.php?post_type=sitepage' ) )

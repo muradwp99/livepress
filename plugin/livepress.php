@@ -3,14 +3,33 @@
  * Plugin Name: LivePress
  * Plugin URI:  https://github.com/muradwp99/livepress
  * Description: Realtime visual editing for headless WordPress. One "Site Pages" list; every page opens a fullscreen editor — fields left, live preview of your real frontend right — streaming every keystroke into the rendered site before saving.
- * Version:     1.1.0
+ * Version:     1.2.0
  * Author:      Murad
  * License:     MIT
+ * Text Domain: livepress
+ * Domain Path: /languages
  */
 
 defined( 'ABSPATH' ) || exit;
 
 const LIVEPRESS_PAGE = 'livepress-editor';
+
+/**
+ * Translations.
+ *
+ * Every string here was hardcoded English, which was fine while the plugin ran
+ * on one studio's site and is not now it is published: without a text domain
+ * it cannot be translated at all, however willing somebody is.
+ *
+ * `load_plugin_textdomain` rather than leaning on WordPress's automatic
+ * loading, because that only covers plugins hosted on wordpress.org and this
+ * one installs from a zip. On `init` because WordPress 6.7 started warning
+ * when a domain loads earlier, and the warning is right — nothing here needs
+ * a translated string before then.
+ */
+add_action( 'init', function () {
+	load_plugin_textdomain( 'livepress', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
+} );
 
 /* Content health and Field history screens. */
 require_once __DIR__ . '/admin-screens.php';
@@ -25,8 +44,28 @@ require_once __DIR__ . '/asset-check.php';
 require_once __DIR__ . '/schedule.php';
 
 /**
- * Global option keys the editor can read/write (stored as `livepress_{key}`).
- * Filter `livepress_option_keys` to extend.
+ * Global option keys the PUBLIC, unauthenticated read route will serve.
+ *
+ * Split from `livepress_option_keys()` because one list was gating both, and
+ * the two questions are not the same question. That list says what an editor
+ * may change; this one says what the whole internet may read. While they were
+ * the same array, adding a key so somebody could edit it also published it —
+ * silently, with no reason for anyone adding a key to think about it.
+ *
+ * `design` is here because it has to be: the headless frontend fetches brand
+ * tokens on every revalidation with no credential to offer, and they are
+ * colours that are visible on the site anyway. Nothing else should join it
+ * without a deliberate reason — filter `livepress_public_option_keys`, not
+ * this default, and remember that "public" here means public.
+ */
+function livepress_public_option_keys(): array {
+	return apply_filters( 'livepress_public_option_keys', array( 'design' ) );
+}
+
+/**
+ * Global option keys an authenticated editor may WRITE (stored as
+ * `livepress_{key}`). Filter `livepress_option_keys` to extend — and note
+ * that extending it no longer publishes the key; see above.
  */
 function livepress_option_keys(): array {
 	/* `nav` and `footer` were here too. Their panels drove options no part of
@@ -121,10 +160,13 @@ add_action( 'init', function () {
 add_action( 'rest_api_init', function () {
 	register_rest_route( 'livepress/v1', '/globals/(?P<key>[a-z_]+)', array(
 		'methods'             => 'GET',
+		/* Deliberately open: the headless frontend has no credential to send.
+		   What keeps that safe is the allowlist below, which is why it is the
+		   PUBLIC list and not the writable one. */
 		'permission_callback' => '__return_true',
 		'callback'            => function ( $request ) {
 			$key = sanitize_key( $request['key'] );
-			if ( ! in_array( $key, livepress_option_keys(), true ) ) {
+			if ( ! in_array( $key, livepress_public_option_keys(), true ) ) {
 				return new WP_Error( 'not_found', 'Unknown global', array( 'status' => 404 ) );
 			}
 			/*
@@ -180,9 +222,9 @@ add_action( 'rest_api_init', function () {
 
 add_action( 'admin_menu', function () {
 	add_menu_page( 'LivePress', 'LivePress', 'edit_pages', 'livepress', function () {}, 'dashicons-visibility', 3 );
-	add_submenu_page( 'livepress', 'Site Pages', 'Site Pages', 'edit_pages', 'edit.php?post_type=sitepage' );
-	add_submenu_page( 'livepress', 'Menus', 'Menus', 'edit_theme_options', 'livepress-menus', 'livepress_render_menus' );
-	add_submenu_page( 'livepress', 'Design', 'Design', 'edit_theme_options', 'livepress-design', 'livepress_render_design' );
+	add_submenu_page( 'livepress', __( 'Site Pages', 'livepress' ), __( 'Site Pages', 'livepress' ), 'edit_pages', 'edit.php?post_type=sitepage' );
+	add_submenu_page( 'livepress', __( 'Menus', 'livepress' ), __( 'Menus', 'livepress' ), 'edit_theme_options', 'livepress-menus', 'livepress_render_menus' );
+	add_submenu_page( 'livepress', __( 'Design', 'livepress' ), __( 'Design', 'livepress' ), 'edit_theme_options', 'livepress-design', 'livepress_render_design' );
 	remove_submenu_page( 'livepress', 'livepress' );
 	add_submenu_page( '', 'LivePress', 'LivePress', 'edit_pages', LIVEPRESS_PAGE, 'livepress_render_editor' );
 } );
@@ -390,7 +432,10 @@ function livepress_asset_version( string $relative ): string {
 function livepress_enqueue_editor( array $boot ) {
 	wp_enqueue_media();
 	wp_enqueue_script( 'wp-api-fetch' );
-	wp_enqueue_script( 'livepress-editor', plugins_url( 'assets/editor.js', __FILE__ ), array( 'wp-api-fetch' ), livepress_asset_version( 'assets/editor.js' ), true );
+	wp_enqueue_script( 'livepress-editor', plugins_url( 'assets/editor.js', __FILE__ ), array( 'wp-api-fetch', 'wp-i18n' ), livepress_asset_version( 'assets/editor.js' ), true );
+	/* Without this the editor's own strings stay untranslatable even after the
+	   PHP side is done — and the editor is where nearly all the words are. */
+	wp_set_script_translations( 'livepress-editor', 'livepress', plugin_dir_path( __FILE__ ) . 'languages' );
 	wp_enqueue_style( 'livepress-editor', plugins_url( 'assets/editor.css', __FILE__ ), array(), livepress_asset_version( 'assets/editor.css' ) );
 	wp_add_inline_script( 'livepress-editor', 'window.LIVEPRESS = ' . wp_json_encode( $boot ) . ';', 'before' );
 	echo '<div id="livepress-root"></div>';

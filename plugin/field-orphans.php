@@ -35,7 +35,7 @@ const LIVEPRESS_SCHEMA_PAGE = 'livepress-schema';
 add_action(
 	'admin_menu',
 	function () {
-		add_submenu_page( 'livepress', 'Schema', 'Schema', 'manage_options', LIVEPRESS_SCHEMA_PAGE, 'livepress_render_schema_health' );
+		add_submenu_page( 'livepress', __( 'Schema', 'livepress' ), __( 'Schema', 'livepress' ), 'manage_options', LIVEPRESS_SCHEMA_PAGE, 'livepress_render_schema_health' );
 	},
 	24
 );
@@ -196,8 +196,8 @@ function livepress_render_schema_health() {
 	$fields  = livepress_all_declared_fields();
 
 	livepress_screen_open(
-		'Schema',
-		'Stored content that no field claims. This happens when a field is renamed or removed: the value stays in the database under the old key, the page quietly falls back to its built-in copy, and nothing reports an error. The generator now catches this before a deploy; this screen finds what is already here.'
+		__( 'Schema', 'livepress' ),
+		__( 'Stored content that no field claims. This happens when a field is renamed or removed: the value stays in the database under the old key, the page quietly falls back to its built-in copy, and nothing reports an error. The generator now catches this before a deploy; this screen finds what is already here.', 'livepress' )
 	);
 
 	foreach ( array(
@@ -234,8 +234,8 @@ function livepress_render_schema_health() {
 
 	if ( ! $orphans ) {
 		livepress_empty_state(
-			'Every stored value has a field',
-			'Nothing in the database is stranded under a key the schema no longer declares.'
+			__( 'Every stored value has a field', 'livepress' ),
+			__( 'Nothing in the database is stranded under a key the schema no longer declares.', 'livepress' )
 		);
 		livepress_screen_close();
 		return;

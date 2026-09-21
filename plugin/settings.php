@@ -51,7 +51,7 @@ function livepress_legacy_host(): string {
 add_action(
 	'admin_menu',
 	function () {
-		add_submenu_page( 'livepress', 'Settings', 'Settings', 'manage_options', LIVEPRESS_SETTINGS, 'livepress_render_settings' );
+		add_submenu_page( 'livepress', __( 'Settings', 'livepress' ), __( 'Settings', 'livepress' ), 'manage_options', LIVEPRESS_SETTINGS, 'livepress_render_settings' );
 	},
 	30
 );
@@ -234,8 +234,8 @@ function livepress_render_settings() {
 	$doctor = wp_nonce_url( admin_url( 'admin-post.php?action=livepress_doctor' ), 'livepress_doctor' );
 
 	livepress_screen_open(
-		'Settings',
-		'Where the frontend lives and how WordPress reaches it. The check below does not read these values back to you — it uses them, and reports which link in the chain is broken.',
+		__( 'Settings', 'livepress' ),
+		__( 'Where the frontend lives and how WordPress reaches it. The check below does not read these values back to you — it uses them, and reports which link in the chain is broken.', 'livepress' ),
 		sprintf( '<a class="lp-btn lp-btn--primary" href="%s">Run the check</a>', esc_url( $doctor ) )
 	);
 

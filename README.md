@@ -32,6 +32,8 @@ plugin/                 the WordPress plugin
                         them — see Enquiries below)
   livepress-forms.php   form schema registration
   assets/               editor.js, editor.css, admin.css
+  languages/            translations (see languages/README.md)
+  tests/                `node tests/run.mjs`
 examples/
   schema-faq.php        one page's schema, to copy
 packages/bridge/        the frontend npm package
@@ -139,6 +141,39 @@ applies immutably.
    real values.
 4. **Verify with a sentinel**: change one value in WP, request the page,
    expect the sentinel. Fail-soft masks dead wiring — body length lies.
+
+## Undo
+
+The editor keeps an undo stack for the moves the browser cannot undo for you:
+deleting a repeater row, reordering, replacing a picture, resetting the brand
+colours — plus one entry per field you visit and change.
+
+Deliberately not keystroke-level. Inside a focused text field Ctrl+Z belongs
+to the browser, which knows about words, selections and the caret; binding it
+globally would take that away and replace it with something coarser. So the
+shortcut only fires when the caret is outside a text field, which is exactly
+where there is no native undo to lose.
+
+## Alt text follows the picture
+
+Choosing a new image pulls that attachment's alt text from the Media Library
+into the picture's paired alt field — `cta_img` beside `cta_img_alt` for a
+top-level field, `src` beside plain `alt` inside a repeater. If the attachment
+has no alt text (a fresh upload never does) the existing text is left alone
+and flagged, because deleting somebody's sentence is not the picker's call.
+
+Without this, changing an image left the page carrying a confident
+description of a picture that was no longer there — read aloud as fact, with
+nothing to say otherwise.
+
+## Translation
+
+Text domain `livepress`. The infrastructure is complete and the editor, menu
+titles, screen headings and empty states are wrapped; the strings inside each
+screen's own table markup are not yet. See `plugin/languages/README.md` for
+how to generate the template — and note `make-json` as well as `make-pot`,
+since `wp.i18n` reads JSON and skipping it leaves the whole editor in English
+while the admin screens change around it.
 
 ## Enquiries
 

@@ -29,7 +29,7 @@ const LIVEPRESS_MIGRATION_STATE = 'livepress_migration_state';
 add_action(
 	'admin_menu',
 	function () {
-		add_submenu_page( 'livepress', 'Cutover check', 'Cutover check', 'manage_options', LIVEPRESS_MIGRATION_PAGE, 'livepress_render_migration' );
+		add_submenu_page( 'livepress', __( 'Cutover check', 'livepress' ), __( 'Cutover check', 'livepress' ), 'manage_options', LIVEPRESS_MIGRATION_PAGE, 'livepress_render_migration' );
 	},
 	25
 );
@@ -212,15 +212,15 @@ function livepress_render_migration() {
 		);
 
 	livepress_screen_open(
-		'Cutover check',
-		'Takes every URL in the old site\'s sitemap and asks this site what it does with each one. A redirect only counts as safe when the chain ends in a 200 — a 301 that lands on a 404 looks fine in a spot check and loses the page anyway.',
+		__( 'Cutover check', 'livepress' ),
+		__( 'Takes every URL in the old site\'s sitemap and asks this site what it does with each one. A redirect only counts as safe when the chain ends in a 200 — a 301 that lands on a 404 looks fine in a spot check and loses the page anyway.', 'livepress' ),
 		$button
 	);
 
 	if ( '' === $sitemap ) {
 		livepress_empty_state(
-			'No sitemap to compare against',
-			'Set the previous site\'s host in Settings and this will look for its sitemap automatically, or enter the sitemap address below.'
+			__( 'No sitemap to compare against', 'livepress' ),
+			__( 'Set the previous site\'s host in Settings and this will look for its sitemap automatically, or enter the sitemap address below.', 'livepress' )
 		);
 	}
 

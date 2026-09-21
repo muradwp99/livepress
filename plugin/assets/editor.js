@@ -6,6 +6,28 @@
 /* global LIVEPRESS, wp */
 (function () {
 	"use strict";
+
+	/**
+	 * Translation, with a fallback.
+	 *
+	 * `wp-i18n` is a declared dependency so `wp.i18n` should always be there,
+	 * but an editor that throws on load because a script did not arrive is a
+	 * worse failure than one showing English. The fallback returns the source
+	 * string, which is what an untranslated build shows anyway.
+	 *
+	 * The domain is repeated at every call site rather than curried into the
+	 * shim because WordPress's string extractor reads the source text — it
+	 * cannot follow a wrapper, and a `__( "Save" )` with the domain hidden in
+	 * a closure is invisible to it and never lands in the .pot at all.
+	 */
+	var __ = ( window.wp && wp.i18n && wp.i18n.__ ) || function ( t ) { return t; };
+	var _x = ( window.wp && wp.i18n && wp.i18n._x ) || function ( t ) { return t; };
+	var _n = ( window.wp && wp.i18n && wp.i18n._n ) || function ( a, b, c ) { return c === 1 ? a : b; };
+	var sprintf = ( window.wp && wp.i18n && wp.i18n.sprintf ) || function ( f ) {
+		var args = Array.prototype.slice.call( arguments, 1 );
+		return String( f ).replace( /%[sd]/g, function () { return args.shift(); } );
+	};
+
 	var B = LIVEPRESS;
 	var values = JSON.parse( JSON.stringify( B.values ) );
 	var dirty = false;
@@ -40,6 +62,15 @@
 		}
 		return null;
 	}
+	/** Every field key on this page, flattened across sections. */
+	function allFieldKeys() {
+		var keys = [];
+		B.schema.sections.forEach( function ( section ) {
+			section.fields.forEach( function ( f ) { keys.push( f.key ); } );
+		} );
+		return keys;
+	}
+
 	function broadcast( key ) {
 		var def = fieldDef( key );
 		if ( ! def || ! frame || ! frame.contentWindow ) { return; }
@@ -66,6 +97,98 @@
 		persistDraft();
 		refreshReviewCount();
 		refreshSectionBadges();
+	}
+
+	/* ---------- undo ----------
+	 *
+	 * There was none. The only way back was "Discard all changes", which
+	 * reloads the saved version and takes every other edit in the session with
+	 * it — so deleting the wrong repeater row cost you the twenty minutes of
+	 * work either side of it, and people learned not to touch the row buttons.
+	 *
+	 * Deliberately NOT a keystroke-level undo. Browsers already give you one
+	 * inside a focused text field, and it is better than anything reimplemented
+	 * here — it knows about word boundaries, selections and the caret. Binding
+	 * Ctrl+Z globally would take that away and replace it with something worse.
+	 * So this covers what the browser cannot: the structural moves that have no
+	 * native undo and are the destructive ones — deleting a row, reordering,
+	 * replacing an image, resetting the brand colours — plus one entry per
+	 * field you visit and change, which is the granularity somebody actually
+	 * thinks in ("undo what I did to the headline"), not per character.
+	 *
+	 * Whole-object snapshots rather than a diff. A page is tens of kilobytes of
+	 * JSON and the cap is forty, so the worst case is a few megabytes of plain
+	 * objects; a diff engine here would be cleverness bought with bugs.
+	 */
+	var undoStack = [];
+	var UNDO_MAX = 40;
+	/* Captured when a text field takes focus, pushed only if it is then
+	   edited — otherwise tabbing through a form would fill the stack with
+	   entries that undo nothing. */
+	var armedUndo = null;
+
+	function snapshotValues() {
+		/* `globals` as well as `values`: the Design screen's colours live
+		   there, and "Reset all to brand" overwrites every one of them in a
+		   click. Snapshotting only `values` would have left the single most
+		   destructive button in the editor still without an undo. */
+		return {
+			values: JSON.parse( JSON.stringify( values ) ),
+			globals: JSON.parse( JSON.stringify( globals ) ),
+		};
+	}
+
+	function refreshUndo() {
+		var btn = document.getElementById( "lp-undo" );
+		if ( ! btn ) { return; }
+		var top = undoStack[ undoStack.length - 1 ];
+		btn.disabled = ! top;
+		btn.title = top ? "Undo: " + top.label : "Nothing to undo";
+	}
+
+	/** Record the state before a structural change. Call BEFORE mutating. */
+	function pushUndo( label ) {
+		undoStack.push( { label: label, values: snapshotValues() } );
+		if ( undoStack.length > UNDO_MAX ) { undoStack.shift(); }
+		refreshUndo();
+	}
+
+	/** Hold the pre-edit state of a field; fireArmedUndo() commits it. */
+	function armUndo( label ) {
+		armedUndo = { label: label, values: snapshotValues() };
+	}
+	function fireArmedUndo() {
+		if ( ! armedUndo ) { return; }
+		undoStack.push( armedUndo );
+		armedUndo = null;
+		if ( undoStack.length > UNDO_MAX ) { undoStack.shift(); }
+		refreshUndo();
+	}
+	function cancelArmedUndo() { armedUndo = null; }
+
+	function undo() {
+		var entry = undoStack.pop();
+		if ( ! entry ) { return; }
+		values = entry.values.values;
+		globals = entry.values.globals;
+		dirty = true;
+		var save = document.getElementById( "lp-save" );
+		if ( save ) { save.classList.add( "is-dirty" ); }
+		/* The preview holds its own copy of every field, so restoring the panel
+		   without this would leave the two showing different pages. */
+		broadcastAll();
+		/* Colours reach the preview on their own channel, not as fields. */
+		sendRaw( { type: "aux-design", tokens: globals.design || {} } );
+		rerenderPanel();
+		persistDraft();
+		refreshReviewCount();
+		refreshSectionBadges();
+		refreshUndo();
+		showBar( bar( sprintf(
+			/* translators: %s names the action being undone, e.g. "delete row from Photos". */
+			__( "Undone: %s", "livepress" ),
+			entry.label
+		) ) );
 	}
 
 	/* ---------- Wave 1: safety ----------
@@ -145,7 +268,9 @@
 		var wrap = el( "div", { class: "lp-bar" + ( tone ? " " + tone : "" ) } );
 		wrap.appendChild( el( "span", { class: "lp-bar-msg", text: message } ) );
 		var right = el( "div", { class: "lp-bar-actions" } );
-		actions.forEach( function ( a ) {
+		/* Some bars are a statement rather than a question — the alt-text
+		   notices have nothing to offer a button for. */
+		( actions || [] ).forEach( function ( a ) {
 			right.appendChild( el( "button", { class: "lp-mini" + ( a.danger ? " danger" : "" ), type: "button", text: a.label, onclick: a.onclick } ) );
 		} );
 		wrap.appendChild( right );
@@ -162,7 +287,7 @@
 		var body = el( "div", { class: "lp-review-body" } );
 
 		if ( ! changes.length ) {
-			body.appendChild( el( "p", { class: "lp-review-empty", text: "Nothing has changed since this page was opened." } ) );
+			body.appendChild( el( "p", { class: "lp-review-empty", text: __( "Nothing has changed since this page was opened.", "livepress" ) } ) );
 		} else {
 			changes.forEach( function ( c ) {
 				body.appendChild( el( "div", { class: "lp-change" }, [
@@ -172,11 +297,11 @@
 					] ),
 					el( "div", { class: "lp-change-cols" }, [
 						el( "div", { class: "lp-change-before" }, [
-							el( "span", { class: "lp-sublabel", text: "Before" } ),
+							el( "span", { class: "lp-sublabel", text: __( "Before", "livepress" ) } ),
 							el( "code", { text: c.before.slice( 0, 400 ) || "(empty)" } )
 						] ),
 						el( "div", { class: "lp-change-after" }, [
-							el( "span", { class: "lp-sublabel", text: "After" } ),
+							el( "span", { class: "lp-sublabel", text: __( "After", "livepress" ) } ),
 							el( "code", { text: c.after.slice( 0, 400 ) || "(empty)" } )
 						] )
 					] )
@@ -188,21 +313,30 @@
 			el( "div", { class: "lp-modal-card" }, [
 				el( "div", { class: "lp-modal-head" }, [
 					el( "strong", { text: changes.length ? changes.length + " change" + ( changes.length === 1 ? "" : "s" ) + " to publish" : "No changes" } ),
-					el( "button", { class: "lp-mini", type: "button", text: "Close", onclick: function () { modal.remove(); } } )
+					el( "button", { class: "lp-mini", type: "button", text: __( "Close", "livepress" ), onclick: function () { modal.remove(); } } )
 				] ),
 				body,
 				el( "div", { class: "lp-modal-foot" }, [
 					el( "button", {
-						class: "lp-mini danger", type: "button", text: "Discard all changes",
+						class: "lp-mini danger", type: "button", text: __( "Discard all changes", "livepress" ),
 						onclick: function () {
 							if ( ! changes.length ) { modal.remove(); return; }
-							if ( ! window.confirm( "Discard " + changes.length + " change" + ( changes.length === 1 ? "" : "s" ) + " and reload the saved version?" ) ) { return; }
+							if ( ! window.confirm( sprintf(
+								/* translators: %d is how many unsaved changes there are. */
+								_n(
+									"Discard %d change and reload the saved version?",
+									"Discard %d changes and reload the saved version?",
+									changes.length,
+									"livepress"
+								),
+								changes.length
+							) ) ) { return; }
 							clearDraft();
 							dirty = false;
 							window.location.reload();
 						}
 					} ),
-					el( "button", { class: "lp-save", type: "button", text: "Publish", onclick: function () { modal.remove(); save(); } } )
+					el( "button", { class: "lp-save", type: "button", text: __( "Publish", "livepress" ), onclick: function () { modal.remove(); save(); } } )
 				] )
 			] )
 		] );
@@ -288,7 +422,7 @@
 
 		var body = el( "div", { class: "lp-review-body" } );
 		if ( ! changes.length ) {
-			body.appendChild( el( "p", { class: "lp-review-empty", text: "Nothing has changed yet, so there is nothing to schedule. Edit a field first." } ) );
+			body.appendChild( el( "p", { class: "lp-review-empty", text: __( "Nothing has changed yet, so there is nothing to schedule. Edit a field first.", "livepress" ) } ) );
 		} else {
 			body.appendChild( el( "p", { class: "lp-hint", text:
 				"These " + changes.length + " change" + ( changes.length === 1 ? "" : "s" ) +
@@ -316,7 +450,7 @@
 
 		var error = el( "p", { class: "lp-hint lp-sched-error" } );
 
-		var go = el( "button", { class: "lp-save", type: "button", text: "Schedule" } );
+		var go = el( "button", { class: "lp-save", type: "button", text: __( "Schedule", "livepress" ) } );
 		go.disabled = ! changes.length;
 		go.addEventListener( "click", function () {
 			var at = Math.floor( new Date( input.value ).getTime() / 1000 );
@@ -349,13 +483,13 @@
 		var modal = el( "div", { class: "lp-modal" }, [
 			el( "div", { class: "lp-modal-card" }, [
 				el( "div", { class: "lp-modal-head" }, [
-					el( "strong", { text: "Schedule this change" } ),
-					el( "button", { class: "lp-mini", type: "button", text: "Close", onclick: function () { modal.remove(); } } ),
+					el( "strong", { text: __( "Schedule this change", "livepress" ) } ),
+					el( "button", { class: "lp-mini", type: "button", text: __( "Close", "livepress" ), onclick: function () { modal.remove(); } } ),
 				] ),
 				body,
 				el( "div", { class: "lp-modal-foot" }, [
 					el( "div", { class: "lp-sched-when" }, [
-						el( "label", { class: "lp-label", text: "Goes live" } ),
+						el( "label", { class: "lp-label", text: __( "Goes live", "livepress" ) } ),
 						input,
 						error,
 					] ),
@@ -547,7 +681,7 @@
 			var src = url;
 			try { src = new URL( url, B.frontend ).href; } catch ( e ) {}
 			var img = el( "img", { src: src, alt: "" } );
-			var meta = el( "span", { class: "lp-thumb-meta", text: "loading" } );
+			var meta = el( "span", { class: "lp-thumb-meta", text: __( "loading", "livepress" ) } );
 			img.addEventListener( "load", function () {
 				var w = img.naturalWidth, h = img.naturalHeight;
 				meta.textContent = w + " x " + h;
@@ -618,7 +752,7 @@
 
 	function openPalette() {
 		var all = fieldIndex();
-		var input = el( "input", { class: "lp-pal-input", type: "text", placeholder: "Jump to a field" } );
+		var input = el( "input", { class: "lp-pal-input", type: "text", placeholder: __( "Jump to a field", "livepress" ) } );
 		var list = el( "div", { class: "lp-pal-list" } );
 		var active = 0;
 		var shown = [];
@@ -666,7 +800,7 @@
 		try { stored = window.localStorage.getItem( "livepress:panelWidth" ); } catch ( e ) {}
 		if ( stored ) { panel.style.width = stored; }
 
-		var grip = el( "div", { class: "lp-grip", title: "Drag to resize" } );
+		var grip = el( "div", { class: "lp-grip", title: __( "Drag to resize", "livepress" ) } );
 		var dragging = false;
 		grip.addEventListener( "mousedown", function ( e ) { dragging = true; e.preventDefault(); document.body.style.cursor = "col-resize"; } );
 		document.addEventListener( "mousemove", function ( e ) {
@@ -687,12 +821,16 @@
 		if ( def.kind === "textarea" || def.kind === "lines" ) {
 			var ta = el( "textarea", { class: "lp-input", rows: def.kind === "lines" ? 5 : 3 } );
 			ta.value = values[ key ] || "";
-			ta.addEventListener( "input", function () { setValue( key, ta.value ); } );
+			ta.addEventListener( "focus", function () { armUndo( "edit " + def.label ); } );
+			ta.addEventListener( "blur", cancelArmedUndo );
+			ta.addEventListener( "input", function () { fireArmedUndo(); setValue( key, ta.value ); } );
 			return autoGrow( ta );
 		}
 		var input = el( "input", { class: "lp-input", type: "text" } );
 		input.value = values[ key ] || "";
-		input.addEventListener( "input", function () { setValue( key, input.value ); } );
+		input.addEventListener( "focus", function () { armUndo( "edit " + def.label ); } );
+		input.addEventListener( "blur", cancelArmedUndo );
+		input.addEventListener( "input", function () { fireArmedUndo(); setValue( key, input.value ); } );
 		return input;
 	}
 
@@ -746,22 +884,77 @@
 	 * `host` is the element a file may be dropped on — the whole field, so the
 	 * target is the size of the thing you are looking at rather than a button.
 	 */
+	/**
+	 * The field holding a picture's alt text, given the picture's own key.
+	 *
+	 * Two conventions are in use and both have to work: a top-level image is
+	 * `cta_img` beside `cta_img_alt`, while a repeater column is `src` beside
+	 * plain `alt`. So the candidates are tried in order against whatever keys
+	 * actually exist alongside this one, rather than a name being assumed.
+	 *
+	 * Returns null when a picture has no alt field at all — some do not, and
+	 * that is the schema's business, not something to invent a field for.
+	 */
+	function altKeyFor( imgKey, siblingKeys ) {
+		var candidates = [ imgKey + "_alt", "alt" ];
+		for ( var i = 0; i < candidates.length; i++ ) {
+			if ( candidates[ i ] !== imgKey && siblingKeys.indexOf( candidates[ i ] ) !== -1 ) {
+				return candidates[ i ];
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Keep the alt text with the picture it describes.
+	 *
+	 * Changing a picture used to leave its alt text untouched, which is worse
+	 * than leaving it empty: the page then carries a confident description of
+	 * an image that is no longer there, and nothing anywhere says so. Screen
+	 * readers read it as fact and it reaches the live site silently.
+	 *
+	 * So the attachment's own alt wins when it has one — it was written in the
+	 * Media Library about this exact file. When it has none (a fresh upload
+	 * always) the old text is left alone but called out, because deleting
+	 * somebody's sentence is not this function's decision to make.
+	 */
+	function syncAlt( altKey, incoming, current, apply ) {
+		if ( ! altKey ) { return; }
+		if ( incoming ) {
+			if ( incoming !== current ) {
+				apply( incoming );
+				showBar( bar( __( "Alt text updated from the Media Library.", "livepress" ) ) );
+			}
+			return;
+		}
+		if ( current ) {
+			showBar( bar(
+				__( "That image has no alt text in the Media Library, so the old alt text is still here — check it still describes the new picture.", "livepress" ),
+				null,
+				"warn"
+			) );
+		}
+	}
+
 	function mediaControls( assign, host ) {
-		var picker = el( "button", { class: "lp-media-btn", type: "button", title: "Choose from the Media Library" } );
+		var picker = el( "button", { class: "lp-media-btn", type: "button", title: __( "Choose from the Media Library", "livepress" ) } );
 		picker.innerHTML = ICON_LIBRARY;
-		picker.appendChild( el( "span", { text: "Choose" } ) );
+		picker.appendChild( el( "span", { text: __( "Choose", "livepress" ) } ) );
 		picker.addEventListener( "click", function () {
-			var frame = wp.media( { title: "Choose image", multiple: false, library: { type: "image" } } );
+			var frame = wp.media( { title: __( "Choose image", "livepress" ), multiple: false, library: { type: "image" } } );
 			frame.on( "select", function () {
-				assign( frame.state().get( "selection" ).first().toJSON().url );
+				var att = frame.state().get( "selection" ).first().toJSON();
+				/* The alt text is right here on the attachment and used to be
+				   thrown away — see altKeyFor. */
+				assign( att.url, typeof att.alt === "string" ? att.alt : "" );
 			} );
 			frame.open();
 		} );
 
 		var file = el( "input", { type: "file", accept: "image/*", class: "lp-file" } );
-		var upload = el( "button", { class: "lp-media-btn", type: "button", title: "Upload a file from this computer" } );
+		var upload = el( "button", { class: "lp-media-btn", type: "button", title: __( "Upload a file from this computer", "livepress" ) } );
 		upload.innerHTML = ICON_UPLOAD;
-		upload.appendChild( el( "span", { text: "Upload" } ) );
+		upload.appendChild( el( "span", { text: __( "Upload", "livepress" ) } ) );
 		upload.addEventListener( "click", function () { file.click(); } );
 
 		function run( f ) {
@@ -772,7 +965,9 @@
 			label.textContent = "Uploading…";
 			uploadImage( f )
 				.then( function ( url ) {
-					if ( url ) { assign( url ); }
+					/* A file uploaded from disk has no alt text yet, so pass
+					   an empty string and let the caller flag the stale one. */
+					if ( url ) { assign( url, "" ); }
 					label.textContent = url ? "Uploaded" : "Failed";
 				} )
 				.catch( function ( err ) {
@@ -814,7 +1009,7 @@
 	}
 
 	function repeaterRow( key, def, row, idx, rerender ) {
-		var handle = el( "span", { class: "lp-drag", text: "⋮⋮", draggable: "true", title: "Drag to reorder" } );
+		var handle = el( "span", { class: "lp-drag", text: "⋮⋮", draggable: "true", title: __( "Drag to reorder", "livepress" ) } );
 		handle.addEventListener( "dragstart", function ( e ) {
 			e.dataTransfer.setData( "text/plain", String( idx ) );
 			e.dataTransfer.effectAllowed = "move";
@@ -825,21 +1020,33 @@
 			var wrapCls = "lp-subfield" + ( sub.kind === "textarea" ? " wide" : "" );
 			var field;
 			if ( sub.kind === "textarea" ) {
-				field = el( "textarea", { class: "lp-input", rows: 2 } );
+				field = el( "textarea", { class: "lp-input", rows: 2, "data-sub": sub.key } );
 			} else {
-				field = el( "input", { class: "lp-input", type: "text" } );
+				field = el( "input", { class: "lp-input", type: "text", "data-sub": sub.key } );
 			}
 			field.value = row[ sub.key ] || "";
+			field.addEventListener( "focus", function () { armUndo( "edit " + sub.label ); } );
+			field.addEventListener( "blur", cancelArmedUndo );
 			field.addEventListener( "input", function () {
+				fireArmedUndo();
 				row[ sub.key ] = field.value;
 				setValue( key, values[ key ] );
 			} );
 			var wrapCell = el( "div", { class: wrapCls } );
 			var inner = [ el( "label", { class: "lp-sublabel", text: sub.label } ), field ];
 			if ( sub.kind === "image" ) {
-				var pair = el( "div", { class: "lp-media-pair" }, [ field, mediaControls( function ( url ) {
+				var pair = el( "div", { class: "lp-media-pair" }, [ field, mediaControls( function ( url, incomingAlt ) {
+					pushUndo( "change " + sub.label );
 					field.value = url;
 					row[ sub.key ] = url;
+					/* Siblings here are this repeater's own columns, where the
+					   convention is `src` beside `alt`. */
+					var altKey = altKeyFor( sub.key, def.subs.map( function ( x ) { return x.key; } ) );
+					syncAlt( altKey, incomingAlt, altKey ? row[ altKey ] : "", function ( next ) {
+						row[ altKey ] = next;
+						var altInput = rowEl.querySelector( '[data-sub="' + altKey + '"]' );
+						if ( altInput ) { altInput.value = next; }
+					} );
 					setValue( key, values[ key ] );
 					thumb.refresh();
 				}, wrapCell ) ] );
@@ -863,9 +1070,10 @@
 		   process step keeps its shape. Deep-copied so the clone does not share
 		   the original's object and edit both at once. */
 		var duplicate = el( "button", {
-			class: "lp-row-del", type: "button", text: "⧉", title: "Duplicate row",
+			class: "lp-row-del", type: "button", text: "⧉", title: __( "Duplicate row", "livepress" ),
 			onclick: function () {
 				var clone = JSON.parse( JSON.stringify( row ) );
+				pushUndo( "duplicate row in " + def.label );
 				values[ key ].splice( idx + 1, 0, clone );
 				setValue( key, values[ key ] );
 				rerender();
@@ -873,8 +1081,9 @@
 		} );
 
 		var remove = el( "button", {
-			class: "lp-row-del", type: "button", text: "✕", title: "Remove row",
+			class: "lp-row-del", type: "button", text: "✕", title: __( "Remove row", "livepress" ),
 			onclick: function () {
+				pushUndo( "delete row from " + def.label );
 				values[ key ].splice( idx, 1 );
 				setValue( key, values[ key ] );
 				rerender();
@@ -889,6 +1098,7 @@
 			rowEl.classList.remove( "drop" );
 			var from = parseInt( e.dataTransfer.getData( "text/plain" ), 10 );
 			if ( isNaN( from ) || from === idx ) { return; }
+			pushUndo( "reorder " + def.label );
 			var moved = values[ key ].splice( from, 1 )[ 0 ];
 			values[ key ].splice( idx, 0, moved );
 			setValue( key, values[ key ] );
@@ -905,10 +1115,11 @@
 				box.appendChild( repeaterRow( key, def, row, idx, rerender ) );
 			} );
 			box.appendChild( el( "button", {
-				class: "lp-row-add", type: "button", text: "+ Add row",
+				class: "lp-row-add", type: "button", text: __( "+ Add row", "livepress" ),
 				onclick: function () {
 					var blank = {};
 					def.subs.forEach( function ( sub ) { blank[ sub.key ] = ""; } );
+					pushUndo( "add row to " + def.label );
 					values[ key ] = values[ key ] || [];
 					values[ key ].push( blank );
 					setValue( key, values[ key ] );
@@ -976,8 +1187,8 @@
 			var reset = el( "button", {
 				class: "lp-mini",
 				type: "button",
-				text: "Reset",
-				title: "Back to the brand value, " + t.fallback,
+				text: __( "Reset", "livepress" ),
+				title: __( "Back to the brand value, ", "livepress" ) + t.fallback,
 			} );
 
 			function paint( value, alsoHex ) {
@@ -997,7 +1208,10 @@
 			swatch.value = current( t );
 			hex.value = current( t );
 
+			swatch.addEventListener( "focus", function () { armUndo( "change " + t.label ); } );
+			swatch.addEventListener( "blur", cancelArmedUndo );
 			swatch.addEventListener( "input", function () {
+				fireArmedUndo();
 				paint( swatch.value, true );
 				push();
 			} );
@@ -1021,6 +1235,7 @@
 			} );
 
 			reset.addEventListener( "click", function () {
+				pushUndo( "reset " + t.label );
 				paint( t.fallback, true );
 				push();
 			} );
@@ -1035,7 +1250,7 @@
 		} );
 
 		if ( ! tokens.length ) {
-			box.appendChild( el( "p", { class: "lp-hint", text: "No design tokens are exposed." } ) );
+			box.appendChild( el( "p", { class: "lp-hint", text: __( "No design tokens are exposed.", "livepress" ) } ) );
 			return box;
 		}
 
@@ -1043,9 +1258,10 @@
 			el( "button", {
 				class: "lp-mini danger",
 				type: "button",
-				text: "Reset all to brand",
+				text: __( "Reset all to brand", "livepress" ),
 				onclick: function () {
-					if ( ! window.confirm( "Put every colour back to the brand default?" ) ) { return; }
+					if ( ! window.confirm( __( "Put every colour back to the brand default?", "livepress" ) ) ) { return; }
+					pushUndo( "reset every colour" );
 					rows.forEach( function ( r ) { r.paint( r.def.fallback, true ); } );
 					push();
 				},
@@ -1155,9 +1371,20 @@
 					var thumb = imagePreview( function () { return values[ def.key ]; } );
 					control.addEventListener( "input", function () { thumb.refresh(); } );
 					kids.push(
-						mediaControls( function ( url ) {
+						mediaControls( function ( url, incomingAlt ) {
+							pushUndo( "change " + def.label );
 							control.value = url;
 							setValue( def.key, url );
+							/* Siblings here are every field on the page, where
+							   the convention is `cta_img` beside `cta_img_alt`. */
+							var altKey = altKeyFor( def.key, allFieldKeys() );
+							syncAlt( altKey, incomingAlt, altKey ? values[ altKey ] : "", function ( next ) {
+								setValue( altKey, next );
+								var altInput = document.querySelector(
+									'.lp-field[data-field="' + altKey + '"] input, .lp-field[data-field="' + altKey + '"] textarea'
+								);
+								if ( altInput ) { altInput.value = next; }
+							} );
 							thumb.refresh();
 						}, wrap ),
 						thumb
@@ -1274,6 +1501,23 @@
 				e.preventDefault();
 				openPalette();
 			}
+			/*
+			 * Undo, but only when the caret is not in a text field.
+			 *
+			 * Inside one, Ctrl+Z belongs to the browser: it knows about words,
+			 * selections and the caret, and nothing written here would be as
+			 * good. Taking it away to offer something coarser would make the
+			 * common case worse to fix the rare one. Outside a field there is
+			 * no native undo to lose, which is exactly where the structural
+			 * moves — a deleted row, a replaced image — need one.
+			 */
+			if ( mod && ! e.shiftKey && ( e.key === "z" || e.key === "Z" ) ) {
+				var t = e.target;
+				var typing = t && ( t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable );
+				if ( typing && t.type !== "color" ) { return; }
+				e.preventDefault();
+				undo();
+			}
 		} );
 	}
 
@@ -1352,17 +1596,25 @@
 					el( "a", { class: "lp-back", href: B.backUrl, text: "←" } ),
 					el( "div", { class: "lp-title" }, [
 						el( "strong", { text: B.title } ),
-						el( "span", { class: "lp-sub", text: "livepress · " + B.path } ),
+						el( "span", { class: "lp-sub", text: __( "livepress · ", "livepress" ) + B.path } ),
 					] ),
 					/* Rank Math only renders its analysis on the classic screen, and
 					   a Site Page always redirects here, so without this link the
 					   marketer can never see a score for a page. */
-					B.seoUrl ? el( "a", { class: "lp-mini", href: B.seoUrl, title: "Open Rank Math analysis for this page", text: "SEO" } ) : null,
-					el( "button", { id: "lp-review", class: "lp-mini", type: "button", text: "Review", onclick: openReview } ),
-					B.postId ? el( "button", { id: "lp-schedule", class: "lp-mini", type: "button", text: "Schedule", onclick: openSchedule } ) : null,
-					el( "button", { id: "lp-save", class: "lp-save", type: "button", text: "Save", onclick: save } ),
+					B.seoUrl ? el( "a", { class: "lp-mini", href: B.seoUrl, title: __( "Open Rank Math analysis for this page", "livepress" ), text: __( "SEO", "livepress" ) } ) : null,
+					el( "button", { id: "lp-undo", class: "lp-mini", type: "button", text: __( "Undo", "livepress" ), disabled: "disabled", title: __( "Nothing to undo", "livepress" ), onclick: undo } ),
+					el( "button", { id: "lp-review", class: "lp-mini", type: "button", text: __( "Review", "livepress" ), onclick: openReview } ),
+					B.postId ? el( "button", { id: "lp-schedule", class: "lp-mini", type: "button", text: __( "Schedule", "livepress" ), onclick: openSchedule } ) : null,
+					el( "button", { id: "lp-save", class: "lp-save", type: "button", text: __( "Save", "livepress" ), onclick: save } ),
 				] ),
-				el( "div", { id: "lp-bars" } ),
+				/* A live region, because everything this editor says back arrives
+				   here: saved, save failed, somebody else changed a field, the alt
+				   text moved with the picture. None of it was announced, so a screen
+				   reader user pressed Save and got silence either way.
+				   `polite` rather than `assertive`: these land while someone is
+				   typing in a field, and interrupting mid-word to say "Saved" costs
+				   more than waiting for the pause. */
+				el( "div", { id: "lp-bars", role: "status", "aria-live": "polite" } ),
 				buildPanel(),
 			] ),
 			grip,

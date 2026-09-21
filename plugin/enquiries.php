@@ -232,7 +232,7 @@ function livepress_form_edit_link( string $edited_in ): string {
 add_action(
 	'admin_menu',
 	function () {
-		add_submenu_page( 'livepress', 'Forms', 'Forms', 'edit_pages', LIVEPRESS_FORMS_PAGE, 'livepress_render_forms' );
+		add_submenu_page( 'livepress', __( 'Forms', 'livepress' ), __( 'Forms', 'livepress' ), 'edit_pages', LIVEPRESS_FORMS_PAGE, 'livepress_render_forms' );
 	},
 	27
 );
@@ -245,8 +245,8 @@ function livepress_render_forms() {
 	$quiet  = count( array_filter( $counts, static fn( $c ) => 0 === $c['total'] ) );
 
 	livepress_screen_open(
-		'Forms',
-		'Every form on the site, what it collects, and where it appears. The forms are built into the frontend with layouts made for where they sit, so this lists them rather than rendering them — it is the answer to "what forms do we have", which otherwise means reading the frontend source.',
+		__( 'Forms', 'livepress' ),
+		__( 'Every form on the site, what it collects, and where it appears. The forms are built into the frontend with layouts made for where they sit, so this lists them rather than rendering them — it is the answer to "what forms do we have", which otherwise means reading the frontend source.', 'livepress' ),
 		sprintf(
 			'<a class="lp-btn" href="%s">See the submissions</a>',
 			esc_url( admin_url( 'edit.php?post_type=' . LIVEPRESS_ENQUIRY_TYPE ) )
@@ -255,8 +255,8 @@ function livepress_render_forms() {
 
 	if ( ! $forms ) {
 		livepress_empty_state(
-			'No form registry found',
-			'The list is generated from the frontend. Run `npm run livepress:gen` and deploy livepress-forms.php alongside the schema files.'
+			__( 'No form registry found', 'livepress' ),
+			__( 'The list is generated from the frontend. Run `npm run livepress:gen` and deploy livepress-forms.php alongside the schema files.', 'livepress' )
 		);
 		livepress_screen_close();
 		return;
