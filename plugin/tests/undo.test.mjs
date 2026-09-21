@@ -42,24 +42,34 @@ const harness = `
     getState: () => ({ values, globals }),
     depth: () => undoStack.length,
     top: () => undoStack[undoStack.length - 1],
-    pushUndo, armUndo, fireArmedUndo, cancelArmedUndo, undo,
+    pushUndo, noteEdit, endEdit, undo,
     bars, UNDO_MAX,
   };
 `;
 const u = new Function(harness)();
 
-/* Arming without editing leaves nothing behind. */
+/* Focus alone changes nothing: an entry exists only once something is typed.
+   This is the case that was broken in practice — when the window does not hold
+   OS focus the browser moves activeElement without firing `focus`, so an
+   implementation that armed there protected nothing. noteEdit does not care. */
 u.setState({ a: "one" }, { design: {} });
-u.armUndo("edit Headline");
-u.cancelArmedUndo();
-assert.equal(u.depth(), 0, "tabbing through a field must not push an entry");
+u.endEdit();
+assert.equal(u.depth(), 0, "visiting a field must not push an entry");
 
 /* A field visit is one entry however many keystrokes. */
-u.armUndo("edit Headline");
-u.fireArmedUndo();
-u.fireArmedUndo();
-u.fireArmedUndo();
-assert.equal(u.depth(), 1, "one entry per field visit, not per keystroke");
+u.noteEdit("edit Headline", "headline");
+u.noteEdit("edit Headline", "headline");
+u.noteEdit("edit Headline", "headline");
+assert.equal(u.depth(), 1, "one entry per field, not per keystroke");
+
+/* A different field is a different step. */
+u.noteEdit("edit Standfirst", "standfirst");
+assert.equal(u.depth(), 2, "moving to another field starts a new step");
+
+/* Returning to the first field after leaving it starts a new step too. */
+u.endEdit();
+u.noteEdit("edit Standfirst", "standfirst");
+assert.equal(u.depth(), 3, "re-entering a field starts a new step");
 
 /* Undo restores the values AND the globals — the design screen lives there. */
 u.setState({ a: "one" }, { design: { gold500: "#aaa" } });

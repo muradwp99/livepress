@@ -122,10 +122,20 @@
 	 */
 	var undoStack = [];
 	var UNDO_MAX = 40;
-	/* Captured when a text field takes focus, pushed only if it is then
-	   edited — otherwise tabbing through a form would fill the stack with
-	   entries that undo nothing. */
-	var armedUndo = null;
+	/* Which field is mid-edit. One undo entry per field you visit and change,
+	   without depending on a focus event ever arriving.
+
+	   It did depend on focus, and that was fragile in a way nothing would have
+	   shown: when the window does not hold OS focus the browser moves
+	   activeElement without dispatching `focus`, so undo never armed and the
+	   editor offered no protection while looking exactly as it does now.
+	   Found by driving the real editor on the live admin rather than by
+	   reading this back.
+
+	   Snapshotting on the first input is safe because `setValue` has not run
+	   yet at that point — `values` still holds the pre-edit state, which is
+	   precisely what an undo needs. */
+	var editingKey = null;
 
 	function snapshotValues() {
 		/* `globals` as well as `values`: the Design screen's colours live
@@ -153,18 +163,21 @@
 		refreshUndo();
 	}
 
-	/** Hold the pre-edit state of a field; fireArmedUndo() commits it. */
-	function armUndo( label ) {
-		armedUndo = { label: label, values: snapshotValues() };
+	/**
+	 * Record the state before the first edit to a field.
+	 *
+	 * Called from the input handler BEFORE setValue, so the snapshot is the
+	 * value as it was. Repeat calls for the same field are ignored, which is
+	 * what makes this one entry per field rather than one per keystroke.
+	 */
+	function noteEdit( label, key ) {
+		if ( editingKey === key ) { return; }
+		editingKey = key;
+		pushUndo( label );
 	}
-	function fireArmedUndo() {
-		if ( ! armedUndo ) { return; }
-		undoStack.push( armedUndo );
-		armedUndo = null;
-		if ( undoStack.length > UNDO_MAX ) { undoStack.shift(); }
-		refreshUndo();
-	}
-	function cancelArmedUndo() { armedUndo = null; }
+
+	/** Leaving a field ends its edit, so returning to it starts a new step. */
+	function endEdit() { editingKey = null; }
 
 	function undo() {
 		var entry = undoStack.pop();
@@ -941,16 +954,22 @@
 		if ( def.kind === "textarea" || def.kind === "lines" ) {
 			var ta = el( "textarea", { class: "lp-input", rows: def.kind === "lines" ? 5 : 3 } );
 			ta.value = values[ key ] || "";
-			ta.addEventListener( "focus", function () { armUndo( "edit " + def.label ); } );
-			ta.addEventListener( "blur", cancelArmedUndo );
-			ta.addEventListener( "input", function () { fireArmedUndo(); setValue( key, ta.value ); } );
+			ta.addEventListener( "focus", endEdit );
+			ta.addEventListener( "blur", endEdit );
+			ta.addEventListener( "input", function () {
+				noteEdit( __( "edit", "livepress" ) + " " + def.label, key );
+				setValue( key, ta.value );
+			} );
 			return autoGrow( ta );
 		}
 		var input = el( "input", { class: "lp-input", type: "text" } );
 		input.value = values[ key ] || "";
-		input.addEventListener( "focus", function () { armUndo( "edit " + def.label ); } );
-		input.addEventListener( "blur", cancelArmedUndo );
-		input.addEventListener( "input", function () { fireArmedUndo(); setValue( key, input.value ); } );
+		input.addEventListener( "focus", endEdit );
+		input.addEventListener( "blur", endEdit );
+		input.addEventListener( "input", function () {
+			noteEdit( __( "edit", "livepress" ) + " " + def.label, key );
+			setValue( key, input.value );
+		} );
 		return input;
 	}
 
@@ -1145,10 +1164,10 @@
 				field = el( "input", { class: "lp-input", type: "text", "data-sub": sub.key } );
 			}
 			field.value = row[ sub.key ] || "";
-			field.addEventListener( "focus", function () { armUndo( "edit " + sub.label ); } );
-			field.addEventListener( "blur", cancelArmedUndo );
+			field.addEventListener( "focus", endEdit );
+			field.addEventListener( "blur", endEdit );
 			field.addEventListener( "input", function () {
-				fireArmedUndo();
+				noteEdit( __( "edit", "livepress" ) + " " + sub.label, key + ":" + idx + ":" + sub.key );
 				row[ sub.key ] = field.value;
 				setValue( key, values[ key ] );
 			} );
@@ -1328,10 +1347,10 @@
 			swatch.value = current( t );
 			hex.value = current( t );
 
-			swatch.addEventListener( "focus", function () { armUndo( "change " + t.label ); } );
-			swatch.addEventListener( "blur", cancelArmedUndo );
+			swatch.addEventListener( "focus", endEdit );
+			swatch.addEventListener( "blur", endEdit );
 			swatch.addEventListener( "input", function () {
-				fireArmedUndo();
+				noteEdit( __( "change", "livepress" ) + " " + t.label, "token:" + t.key );
 				paint( swatch.value, true );
 				push();
 			} );

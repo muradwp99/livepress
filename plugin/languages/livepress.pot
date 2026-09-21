@@ -2,14 +2,14 @@
 # This file is distributed under the MIT.
 msgid ""
 msgstr ""
-"Project-Id-Version: LivePress 1.5.1\n"
+"Project-Id-Version: LivePress 1.5.2\n"
 "Report-Msgid-Bugs-To: https://github.com/muradwp99/livepress/issues\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-09-21T06:39:59+00:00\n"
+"POT-Creation-Date: 2026-09-21T06:48:38+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: livepress\n"
@@ -673,7 +673,7 @@ msgid "No LivePress schema for \"%s\"."
 msgstr ""
 
 #: livepress.php:321
-#: assets/editor.js:449
+#: assets/editor.js:462
 msgid "Somebody else"
 msgstr ""
 
@@ -849,7 +849,7 @@ msgid "missing a cron event"
 msgstr ""
 
 #: schedule.php:365
-#: assets/editor.js:594
+#: assets/editor.js:607
 msgid "Goes live"
 msgstr ""
 
@@ -1015,206 +1015,216 @@ msgid "Generate a new secret"
 msgstr ""
 
 #. translators: %s names the action being undone, e.g. "delete row from Photos".
-#: assets/editor.js:189
+#: assets/editor.js:202
 #, js-format
 msgid "Undone: %s"
 msgstr ""
 
-#: assets/editor.js:290
+#: assets/editor.js:303
 msgid "Nothing has changed since this page was opened."
 msgstr ""
 
-#: assets/editor.js:300
+#: assets/editor.js:313
 msgid "Before"
 msgstr ""
 
-#: assets/editor.js:304
+#: assets/editor.js:317
 msgid "After"
 msgstr ""
 
-#: assets/editor.js:316
-#: assets/editor.js:589
+#: assets/editor.js:329
+#: assets/editor.js:602
 msgid "Close"
 msgstr ""
 
-#: assets/editor.js:321
+#: assets/editor.js:334
 msgid "Discard all changes"
 msgstr ""
 
 #. translators: %d is how many unsaved changes there are.
-#: assets/editor.js:326
+#: assets/editor.js:339
 #, js-format
 msgid "Discard %d change and reload the saved version?"
 msgid_plural "Discard %d changes and reload the saved version?"
 msgstr[0] ""
 msgstr[1] ""
 
-#: assets/editor.js:339
+#: assets/editor.js:352
 msgid "Publish"
 msgstr ""
 
 #. translators: %s is the name of the person already editing.
-#: assets/editor.js:411
+#: assets/editor.js:424
 #, js-format
 msgid "%s opened this page before you and may still be editing it. You can carry on — changes to different fields merge, and anything that clashes is flagged when you save."
 msgstr ""
 
 #. translators: %s is the name of the person who took over.
-#: assets/editor.js:448
+#: assets/editor.js:461
 #, js-format
 msgid "%s has opened this page since you did. Your unsaved work is still here; save when you are ready and anything that clashes will be flagged."
 msgstr ""
 
-#: assets/editor.js:486
+#: assets/editor.js:499
 msgid "Copy preview link"
 msgstr ""
 
-#: assets/editor.js:494
+#: assets/editor.js:507
 msgid "Link copied"
 msgstr ""
 
-#: assets/editor.js:501
-#: assets/editor.js:503
+#: assets/editor.js:514
+#: assets/editor.js:516
 msgid "Copy this link:"
 msgstr ""
 
-#: assets/editor.js:508
+#: assets/editor.js:521
 msgid "Cancel it"
 msgstr ""
 
-#: assets/editor.js:527
+#: assets/editor.js:540
 msgid "Nothing has changed yet, so there is nothing to schedule. Edit a field first."
 msgstr ""
 
-#: assets/editor.js:555
-#: assets/editor.js:1740
+#: assets/editor.js:568
+#: assets/editor.js:1759
 msgid "Schedule"
 msgstr ""
 
-#: assets/editor.js:588
+#: assets/editor.js:601
 msgid "Schedule this change"
 msgstr ""
 
-#: assets/editor.js:786
+#: assets/editor.js:799
 msgid "loading"
 msgstr ""
 
-#: assets/editor.js:870
+#: assets/editor.js:883
 msgid "Jump to a field"
 msgstr ""
 
-#: assets/editor.js:902
+#: assets/editor.js:915
 msgid "↑↓ to move"
 msgstr ""
 
-#: assets/editor.js:903
+#: assets/editor.js:916
 msgid "Enter to jump"
 msgstr ""
 
-#: assets/editor.js:904
+#: assets/editor.js:917
 msgid "Esc to close"
 msgstr ""
 
-#: assets/editor.js:923
+#: assets/editor.js:936
 msgid "Drag to resize"
 msgstr ""
 
-#: assets/editor.js:1046
+#: assets/editor.js:960
+#: assets/editor.js:970
+#: assets/editor.js:1170
+msgid "edit"
+msgstr ""
+
+#: assets/editor.js:1065
 msgid "Alt text updated from the Media Library."
 msgstr ""
 
-#: assets/editor.js:1052
+#: assets/editor.js:1071
 msgid "That image has no alt text in the Media Library, so the old alt text is still here — check it still describes the new picture."
 msgstr ""
 
-#: assets/editor.js:1060
+#: assets/editor.js:1079
 msgid "Choose from the Media Library"
 msgstr ""
 
-#: assets/editor.js:1062
+#: assets/editor.js:1081
 msgid "Choose"
 msgstr ""
 
-#: assets/editor.js:1064
+#: assets/editor.js:1083
 msgid "Choose image"
 msgstr ""
 
-#: assets/editor.js:1075
+#: assets/editor.js:1094
 msgid "Upload a file from this computer"
 msgstr ""
 
-#: assets/editor.js:1077
+#: assets/editor.js:1096
 msgid "Upload"
 msgstr ""
 
-#: assets/editor.js:1132
+#: assets/editor.js:1151
 msgid "Drag to reorder"
 msgstr ""
 
-#: assets/editor.js:1193
+#: assets/editor.js:1212
 msgid "Duplicate row"
 msgstr ""
 
-#: assets/editor.js:1204
+#: assets/editor.js:1223
 msgid "Remove row"
 msgstr ""
 
-#: assets/editor.js:1238
+#: assets/editor.js:1257
 msgid "+ Add row"
 msgstr ""
 
-#: assets/editor.js:1310
+#: assets/editor.js:1329
 msgid "Reset"
 msgstr ""
 
-#: assets/editor.js:1311
+#: assets/editor.js:1330
 msgid "Back to the brand value, "
 msgstr ""
 
-#: assets/editor.js:1373
+#: assets/editor.js:1353
+msgid "change"
+msgstr ""
+
+#: assets/editor.js:1392
 msgid "No design tokens are exposed."
 msgstr ""
 
-#: assets/editor.js:1381
+#: assets/editor.js:1400
 msgid "Reset all to brand"
 msgstr ""
 
-#: assets/editor.js:1383
+#: assets/editor.js:1402
 msgid "Put every colour back to the brand default?"
 msgstr ""
 
-#: assets/editor.js:1719
+#: assets/editor.js:1738
 msgid "livepress · "
 msgstr ""
 
-#: assets/editor.js:1724
+#: assets/editor.js:1743
 msgid "Open Rank Math analysis for this page"
 msgstr ""
 
-#: assets/editor.js:1724
+#: assets/editor.js:1743
 msgid "SEO"
 msgstr ""
 
-#: assets/editor.js:1732
+#: assets/editor.js:1751
 msgid "Find a field"
 msgstr ""
 
-#: assets/editor.js:1735
+#: assets/editor.js:1754
 msgid "Find"
 msgstr ""
 
-#: assets/editor.js:1738
+#: assets/editor.js:1757
 msgid "Undo"
 msgstr ""
 
-#: assets/editor.js:1738
+#: assets/editor.js:1757
 msgid "Nothing to undo"
 msgstr ""
 
-#: assets/editor.js:1739
+#: assets/editor.js:1758
 msgid "Review"
 msgstr ""
 
-#: assets/editor.js:1741
+#: assets/editor.js:1760
 msgid "Save"
 msgstr ""
