@@ -54,6 +54,19 @@ function livepress_schedule_change( int $post_id, array $values, int $when ): bo
 				'at'     => $when,
 				'by'     => get_current_user_id(),
 				'values' => $values,
+				/*
+				 * The preview token, kept on the record rather than in its own
+				 * store so it cannot outlive what it grants access to. When the
+				 * change lands or is cancelled the record goes and the link
+				 * stops working the same instant — a token with a lifetime of
+				 * its own is one somebody has to remember to revoke.
+				 *
+				 * Regenerated on every schedule, so rescheduling invalidates a
+				 * link already sent. That is the safer default: the old link
+				 * was shared to show a specific change, and after an edit it
+				 * would quietly show a different one.
+				 */
+				'token'  => wp_generate_password( 32, false ),
 			)
 		)
 	);
@@ -65,6 +78,84 @@ function livepress_schedule_change( int $post_id, array $values, int $when ): bo
 
 	return true;
 }
+
+/**
+ * The document a preview token belongs to, or 0.
+ *
+ * A meta_value LIKE scan rather than an index: there is one pending record per
+ * document and a handful of documents, so this reads a few rows. If that ever
+ * stops being true the token belongs in its own indexed table, not in a
+ * cleverer query over this one.
+ *
+ * hash_equals on the way out because the LIKE narrows the candidates but does
+ * not authenticate them — the comparison that decides access is this one, and
+ * it should not leak its answer through timing.
+ */
+function livepress_preview_post_for_token( string $token ): int {
+	if ( strlen( $token ) < 32 ) {
+		return 0;
+	}
+	global $wpdb;
+	$rows = $wpdb->get_results(
+		$wpdb->prepare(
+			"SELECT post_id, meta_value FROM {$wpdb->postmeta} WHERE meta_key = %s AND meta_value LIKE %s LIMIT 20",
+			LIVEPRESS_SCHEDULE_KEY,
+			'%' . $wpdb->esc_like( $token ) . '%'
+		)
+	);
+	foreach ( $rows as $row ) {
+		$pending = maybe_unserialize( $row->meta_value );
+		if ( is_array( $pending ) && ! empty( $pending['token'] ) && hash_equals( (string) $pending['token'], $token ) ) {
+			return (int) $row->post_id;
+		}
+	}
+	return 0;
+}
+
+/**
+ * Serve a scheduled change to whoever holds its link.
+ *
+ * Public on purpose, and that is the whole point: the person you want to show
+ * a change to is usually the person without a WordPress login. What stands
+ * between the link and the content is the token — 32 characters of
+ * wp_generate_password, living on the pending record so it dies when the
+ * change lands.
+ *
+ * It returns only the fields that change, for one document. Not the document,
+ * not its neighbours, not anything the token's holder could walk to from here.
+ */
+add_action( 'rest_api_init', function () {
+	register_rest_route( 'livepress/v1', '/preview/(?P<token>[A-Za-z0-9]{32,64})', array(
+		'methods'             => 'GET',
+		'permission_callback' => '__return_true',
+		'callback'            => function ( $request ) {
+			$token   = (string) $request['token'];
+			$post_id = livepress_preview_post_for_token( $token );
+			if ( ! $post_id ) {
+				return new WP_Error( 'not_found', 'No preview for that link.', array( 'status' => 404 ) );
+			}
+			$pending = get_post_meta( $post_id, LIVEPRESS_SCHEDULE_KEY, true );
+			$post    = get_post( $post_id );
+			if ( ! is_array( $pending ) || empty( $pending['values'] ) || ! $post ) {
+				return new WP_Error( 'not_found', 'No preview for that link.', array( 'status' => 404 ) );
+			}
+
+			$schema = livepress_schema();
+			$path   = $schema[ $post->post_name ]['frontendPath'] ?? '/';
+
+			/* Never cached. A preview is a moving target by definition, and a
+			   CDN holding one would serve a change after it had been cancelled. */
+			do_action( 'litespeed_control_set_nocache', 'livepress preview must be fresh' );
+			nocache_headers();
+
+			return rest_ensure_response( array(
+				'path'   => str_replace( '{slug}', $post->post_name, $path ),
+				'at'     => (int) ( $pending['at'] ?? 0 ),
+				'values' => (object) $pending['values'],
+			) );
+		},
+	) );
+} );
 
 /** Drop a pending change without applying it. */
 function livepress_cancel_scheduled( int $post_id ): void {
@@ -83,6 +174,7 @@ function livepress_pending_for( int $post_id ): ?array {
 		'at'     => (int) ( $pending['at'] ?? 0 ),
 		'by'     => $user ? $user->display_name : '',
 		'fields' => array_keys( $pending['values'] ),
+		'token'  => (string) ( $pending['token'] ?? '' ),
 	);
 }
 

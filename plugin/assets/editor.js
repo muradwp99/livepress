@@ -469,14 +469,50 @@
 		var node = bar(
 			p.fields.length + ( p.fields.length === 1 ? " change goes" : " changes go" ) +
 				" live " + when.toLocaleString() + ( p.by ? ", scheduled by " + p.by : "" ),
-			[ {
-				label: "Cancel it",
-				danger: true,
-				onclick: function () {
-					wp.apiFetch( { path: "/livepress/v1/schedule/" + B.postId, method: "DELETE" } )
-						.then( function () { B.pending = null; renderPendingBar(); } );
+			[
+				/*
+				 * A link for somebody without a WordPress login.
+				 *
+				 * Scheduling could park a change and say when it would land,
+				 * and there was no way to show anybody what it would look
+				 * like — so approval meant describing a layout in a message,
+				 * or waiting for it to go live and fixing it afterwards.
+				 *
+				 * Only offered when a token came back with the pending record;
+				 * a change scheduled before this existed has none, and a dead
+				 * link is worse than no button.
+				 */
+				p.token ? {
+					label: __( "Copy preview link", "livepress" ),
+					onclick: function ( e ) {
+						var url = B.frontend + B.path + ( B.path.indexOf( "?" ) === -1 ? "?" : "&" ) +
+							"lp_preview=" + encodeURIComponent( p.token );
+						var btn = e && e.target;
+						var done = function () {
+							if ( btn ) {
+								var was = btn.textContent;
+								btn.textContent = __( "Link copied", "livepress" );
+								setTimeout( function () { btn.textContent = was; }, 1800 );
+							}
+						};
+						/* Clipboard access needs a secure context and can be
+						   refused; a prompt is the fallback that always works. */
+						if ( navigator.clipboard && window.isSecureContext ) {
+							navigator.clipboard.writeText( url ).then( done, function () { window.prompt( __( "Copy this link:", "livepress" ), url ); } );
+						} else {
+							window.prompt( __( "Copy this link:", "livepress" ), url );
+						}
+					},
+				} : null,
+				{
+					label: __( "Cancel it", "livepress" ),
+					danger: true,
+					onclick: function () {
+						wp.apiFetch( { path: "/livepress/v1/schedule/" + B.postId, method: "DELETE" } )
+							.then( function () { B.pending = null; renderPendingBar(); } );
+					},
 				},
-			} ],
+			].filter( Boolean ),
 			"warn"
 		);
 		node.classList.add( "scheduled" );

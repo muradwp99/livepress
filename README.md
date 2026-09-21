@@ -154,6 +154,26 @@ globally would take that away and replace it with something coarser. So the
 shortcut only fires when the caret is outside a text field, which is exactly
 where there is no native undo to lose.
 
+## Preview a scheduled change
+
+A change parked with Schedule gets a link that renders it on the real
+frontend, for somebody who has no WordPress login — which is usually the
+person whose approval you want.
+
+The token lives on the pending record rather than in a store of its own, so
+it stops working the moment the change lands or is cancelled. Rescheduling
+regenerates it, invalidating a link already sent: the old one was shared to
+show a specific change and would otherwise quietly show a different one.
+
+The frontend reads `?lp_preview=<token>`, fetches the values and overlays
+them through the same bridge a live keystroke uses, and adds `noindex`. A
+dead link shows the published page, which is the honest failure — the change
+is gone or already live, and either way what you see is what is true.
+
+Needs the frontend half: `previewToken()` / `startPreview()` in the bridge,
+and a route that proxies to `/wp-json/livepress/v1/preview/{token}` so the
+CMS hostname stays out of the client bundle.
+
 ## Who else has the page open
 
 Opening a document shows a warning if somebody else already has it open, and
