@@ -750,6 +750,19 @@
 		if ( input ) { setTimeout( function () { input.focus(); }, 260 ); }
 	}
 
+	/**
+	 * How this platform writes the modifier.
+	 *
+	 * `navigator.platform` is deprecated but still the only thing that answers
+	 * everywhere; userAgentData is Chromium-only. Getting it wrong shows a Mac
+	 * user "Ctrl+K" for a shortcut that is Cmd+K, which is worse than showing
+	 * nothing — they try it, it does nothing, and they stop trusting the hint.
+	 */
+	function modKeyLabel() {
+		var ua = ( navigator.userAgentData && navigator.userAgentData.platform ) || navigator.platform || "";
+		return /mac|iphone|ipad/i.test( ua ) ? "⌘K" : "Ctrl+K";
+	}
+
 	function openPalette() {
 		var all = fieldIndex();
 		var input = el( "input", { class: "lp-pal-input", type: "text", placeholder: __( "Jump to a field", "livepress" ) } );
@@ -783,8 +796,13 @@
 			else if ( e.key === "Escape" ) { modal.remove(); }
 		} );
 
+		var hint = el( "div", { class: "lp-pal-hint" }, [
+			el( "span", { text: __( "↑↓ to move", "livepress" ) } ),
+			el( "span", { text: __( "Enter to jump", "livepress" ) } ),
+			el( "span", { text: __( "Esc to close", "livepress" ) } ),
+		] );
 		var modal = el( "div", { class: "lp-modal lp-pal" }, [
-			el( "div", { class: "lp-pal-card" }, [ input, list ] )
+			el( "div", { class: "lp-pal-card" }, [ input, list, hint ] )
 		] );
 		modal.addEventListener( "click", function ( e ) { if ( e.target === modal ) { modal.remove(); } } );
 		document.body.appendChild( modal );
@@ -1602,6 +1620,19 @@
 					   a Site Page always redirects here, so without this link the
 					   marketer can never see a score for a page. */
 					B.seoUrl ? el( "a", { class: "lp-mini", href: B.seoUrl, title: __( "Open Rank Math analysis for this page", "livepress" ), text: __( "SEO", "livepress" ) } ) : null,
+					/* The palette has been here all along on Ctrl+K and nothing
+					   said so — the only mentions of the shortcut anywhere in
+					   this file were in its own source comments. A page carries
+					   thirty to sixty-six fields, so the thing that makes them
+					   findable was the thing nobody could find. */
+					el( "button", {
+						id: "lp-find", class: "lp-mini", type: "button",
+						title: __( "Find a field", "livepress" ) + " (" + modKeyLabel() + ")",
+						onclick: openPalette,
+					}, [
+						el( "span", { text: __( "Find", "livepress" ) } ),
+						el( "kbd", { class: "lp-kbd", text: modKeyLabel() } ),
+					] ),
 					el( "button", { id: "lp-undo", class: "lp-mini", type: "button", text: __( "Undo", "livepress" ), disabled: "disabled", title: __( "Nothing to undo", "livepress" ), onclick: undo } ),
 					el( "button", { id: "lp-review", class: "lp-mini", type: "button", text: __( "Review", "livepress" ), onclick: openReview } ),
 					B.postId ? el( "button", { id: "lp-schedule", class: "lp-mini", type: "button", text: __( "Schedule", "livepress" ), onclick: openSchedule } ) : null,

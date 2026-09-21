@@ -824,3 +824,30 @@
   .lp-drag,
   .lp-row-del { opacity: 1; }
 }
+
+/* The palette's key hints, and the topbar control that reveals it exists.
+
+   Both are here because the palette was reachable only by Ctrl+K and nothing
+   in the interface mentioned it — a page carries thirty to sixty-six fields,
+   so the one feature that makes them findable was itself unfindable. */
+.lp-pal-hint {
+  display: flex;
+  gap: 14px;
+  padding: 9px 14px;
+  border-top: 1px solid var(--line);
+  font-size: var(--t-xs);
+  color: var(--ink-3);
+}
+
+#lp-find { display: inline-flex; align-items: center; gap: 7px; }
+
+.lp-kbd {
+  padding: 1px 5px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--raise);
+  font-family: inherit;
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: var(--ink-3);
+}
