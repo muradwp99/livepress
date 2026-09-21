@@ -211,7 +211,7 @@ function livepress_render_assets() {
 	foreach (
 		array(
 			'broken'   => array( __( 'Not loading', 'livepress' ), __( 'The URL is stored on a page but does not answer. Either the render was deleted from the media library or the address was mistyped.', 'livepress' ) ),
-			'old_host' => array( __( 'Pointing at the previous site', 'livepress' ), sprintf( __( 'These resolve today because %s still serves the old WordPress. The hour it serves the new site, every one of them 404s at once.', 'livepress' ), livepress_legacy_host() ) ),
+			'old_host' => array( __( 'Pointing at the previous site', 'livepress' ), sprintf( /* translators: %s is the previous site's hostname. */ __( 'These resolve today because %s still serves the old WordPress. The hour it serves the new site, every one of them 404s at once.', 'livepress' ), livepress_legacy_host() ) ),
 		) as $key => $section
 	) {
 		if ( empty( $report[ $key ] ) ) {

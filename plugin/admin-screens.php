@@ -412,8 +412,8 @@ function livepress_render_history() {
 	if ( isset( $_GET['restored'] ) ) {
 		printf(
 			'<div class="lp-notice lp-notice--ok"><p>%s</p></div>',
-			/* translators: %s is the field name, already wrapped in <strong>. */
 			sprintf(
+				/* translators: %s is the field name, already wrapped in <strong>. */
 				__( 'Restored %s to its previous value. The frontend has already been rebuilt.', 'livepress' ),
 				'<strong>' . esc_html( livepress_field_label( sanitize_text_field( wp_unslash( $_GET['restored'] ) ) ) ) . '</strong>'
 			)

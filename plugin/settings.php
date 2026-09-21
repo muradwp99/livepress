@@ -245,8 +245,8 @@ function livepress_render_settings() {
 	if ( isset( $_GET['generated'] ) ) {
 		printf(
 			'<div class="lp-notice lp-notice--ok"><p>%s</p></div>',
-			/* translators: %s is the LIVEPRESS_REVALIDATE_SECRET constant name in <code>. */
 			wp_kses_post( sprintf(
+				/* translators: %s is the LIVEPRESS_REVALIDATE_SECRET constant name, in <code>. */
 				__( 'New secret generated. Copy it into the frontend environment as %s and redeploy, or instant publish will stop working until you do.', 'livepress' ),
 				'<code>LIVEPRESS_REVALIDATE_SECRET</code>'
 			) )

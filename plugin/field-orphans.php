@@ -201,7 +201,9 @@ function livepress_render_schema_health() {
 	);
 
 	foreach ( array(
-		'moved'   => array( 'ok', 'Moved %d value(s) to <code>%s</code>.' ),
+		/* translators: %1$d is how many values moved, %2$s the field key they moved to. */
+		'moved'   => array( 'ok', __( 'Moved %1$d value(s) to <code>%2$s</code>.', 'livepress' ) ),
+		/* translators: %d is how many stored values were deleted. */
 		'deleted' => array( 'ok', __( 'Deleted %d stored value(s).', 'livepress' ) ),
 	) as $param => $meta ) {
 		if ( ! isset( $_GET[ $param ] ) ) {

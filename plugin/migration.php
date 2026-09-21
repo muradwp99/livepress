@@ -230,6 +230,7 @@ function livepress_render_migration() {
 			. '<input type="hidden" name="action" value="livepress_migration">'
 			. '<label class="lp-label" for="lp-sitemap">' . esc_html__( 'Old sitemap', 'livepress' ) . '</label>'
 			. '<input class="lp-input" type="text" id="lp-sitemap" name="sitemap" value="%s" spellcheck="false">'
+			/* translators: %s is the address being probed. */
 			. '<p class="lp-hint">' . esc_html__( 'The sitemap the previous site publishes. An index of sitemaps is followed one level, which covers Rank Math, Yoast and WordPress core. Probing runs against %s.', 'livepress' ) . '</p>'
 			. '</div><div class="lp-form-actions"><button class="lp-btn" type="submit" name="what" value="start">' . esc_html__( 'Use this sitemap and run', 'livepress' ) . '</button></div></form>',
 		$action,

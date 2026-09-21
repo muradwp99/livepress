@@ -1,0 +1,1220 @@
+# Copyright (C) 2026 Murad
+# This file is distributed under the MIT.
+msgid ""
+msgstr ""
+"Project-Id-Version: LivePress 1.5.1\n"
+"Report-Msgid-Bugs-To: https://github.com/muradwp99/livepress/issues\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2026-09-21T06:39:59+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.12.0\n"
+"X-Domain: livepress\n"
+
+#. Plugin Name of the plugin
+#: livepress.php
+msgid "LivePress"
+msgstr ""
+
+#. Plugin URI of the plugin
+#: livepress.php
+msgid "https://github.com/muradwp99/livepress"
+msgstr ""
+
+#. Description of the plugin
+#: livepress.php
+msgid "Realtime visual editing for headless WordPress. One \"Site Pages\" list; every page opens a fullscreen editor — fields left, live preview of your real frontend right — streaming every keystroke into the rendered site before saving."
+msgstr ""
+
+#. Author of the plugin
+#: livepress.php
+msgid "Murad"
+msgstr ""
+
+#: activity.php:20
+#: activity.php:104
+msgid "Activity"
+msgstr ""
+
+#. translators: %d is the number of recent changes listed.
+#: activity.php:107
+#, php-format
+msgid "The %d most recent changes across every page and article. Field edits name the person who made them; a plain save records only that WordPress wrote the document, because it does not keep an editor for that."
+msgstr ""
+
+#: activity.php:114
+msgid "Nothing recorded yet"
+msgstr ""
+
+#: activity.php:115
+msgid "Field edits and document saves will appear here as they happen, newest first."
+msgstr ""
+
+#: activity.php:123
+msgid "changes shown"
+msgstr ""
+
+#: activity.php:124
+msgid "in the last 24 hours"
+msgstr ""
+
+#: activity.php:125
+msgid "field edits"
+msgstr ""
+
+#: activity.php:126
+msgid "people editing"
+msgstr ""
+
+#: activity.php:149
+msgid "edited"
+msgstr ""
+
+#: activity.php:154
+#: admin-screens.php:492
+msgid "(was empty)"
+msgstr ""
+
+#: activity.php:158
+msgid "saved"
+msgstr ""
+
+#: activity.php:159
+msgid "Document written"
+msgstr ""
+
+#: activity.php:168
+#: admin-screens.php:490
+#: schedule.php:395
+msgid "unknown"
+msgstr ""
+
+#. translators: %s is a human-readable interval such as "2 hours".
+#: activity.php:170
+#, php-format
+msgid "%s ago"
+msgstr ""
+
+#: activity.php:175
+msgid "not recorded"
+msgstr ""
+
+#: admin-screens.php:22
+#: admin-screens.php:320
+msgid "Content health"
+msgstr ""
+
+#: admin-screens.php:23
+#: admin-screens.php:408
+msgid "Field history"
+msgstr ""
+
+#: admin-screens.php:321
+msgid "Where the work is unfinished, across every managed page at once. A field with no saved value but a built-in default is not counted as empty — the page renders that copy, and counting it made the first version report every page as broken."
+msgstr ""
+
+#: admin-screens.php:322
+msgid "Rebuild page text"
+msgstr ""
+
+#. translators: %d is how many pages were rebuilt.
+#: admin-screens.php:329
+#, php-format
+msgid "Rebuilt the analysable text on %d pages. Rank Math scores them against this."
+msgstr ""
+
+#: admin-screens.php:335
+msgid "pages managed"
+msgstr ""
+
+#: admin-screens.php:336
+msgid "missing SEO"
+msgstr ""
+
+#: admin-screens.php:337
+msgid "no focus keyword"
+msgstr ""
+
+#: admin-screens.php:338
+msgid "with empty fields"
+msgstr ""
+
+#: admin-screens.php:339
+msgid "images without alt text"
+msgstr ""
+
+#: admin-screens.php:345
+msgid "No managed pages yet"
+msgstr ""
+
+#: admin-screens.php:346
+msgid "Every page defined in the LivePress schema will appear here once it exists in WordPress."
+msgstr ""
+
+#: admin-screens.php:355
+msgid "SEO title"
+msgstr ""
+
+#: admin-screens.php:357
+msgid "Focus keyword"
+msgstr ""
+
+#: admin-screens.php:358
+msgid "Fields filled"
+msgstr ""
+
+#: admin-screens.php:359
+msgid "Built-in default"
+msgstr ""
+
+#: admin-screens.php:361
+msgid "No alt text"
+msgstr ""
+
+#: admin-screens.php:362
+msgid "Last edited"
+msgstr ""
+
+#: admin-screens.php:370
+msgid "missing"
+msgstr ""
+
+#: admin-screens.php:380
+msgid "Edit"
+msgstr ""
+
+#: admin-screens.php:387
+msgid "not set"
+msgstr ""
+
+#: admin-screens.php:409
+msgid "WordPress revisions do not cover custom fields, so this is the only record of what a field held before it changed. Most recent first."
+msgstr ""
+
+#. translators: %s is the field name, already wrapped in <strong>.
+#: admin-screens.php:417
+#, php-format
+msgid "Restored %s to its previous value. The frontend has already been rebuilt."
+msgstr ""
+
+#: admin-screens.php:424
+msgid "Page"
+msgstr ""
+
+#: admin-screens.php:425
+msgid "Choose a page&hellip;"
+msgstr ""
+
+#: admin-screens.php:434
+msgid "Show"
+msgstr ""
+
+#: admin-screens.php:438
+msgid "Choose a page"
+msgstr ""
+
+#: admin-screens.php:439
+msgid "Pick a page above to see every field change recorded against it, and to put any one of them back."
+msgstr ""
+
+#: admin-screens.php:450
+msgid "No changes recorded yet"
+msgstr ""
+
+#: admin-screens.php:451
+msgid "Nothing on this page has been edited since history started. The first edit will appear here with its previous value."
+msgstr ""
+
+#: admin-screens.php:453
+msgid "Open the editor"
+msgstr ""
+
+#: admin-screens.php:466
+msgid "Previous value"
+msgstr ""
+
+#: admin-screens.php:484
+msgid "Restore"
+msgstr ""
+
+#: asset-check.php:138
+msgid "no response"
+msgstr ""
+
+#: asset-check.php:152
+#: broken-links.php:169
+#: field-orphans.php:144
+#: migration.php:158
+#: page-text.php:157
+#: schedule.php:310
+#: settings.php:63
+#: settings.php:98
+#: settings.php:223
+msgid "You do not have permission to do that."
+msgstr ""
+
+#: asset-check.php:164
+#: asset-check.php:174
+msgid "Images"
+msgstr ""
+
+#: asset-check.php:175
+msgid "Checks that every image a page points at still resolves. The build gate checks the rendered site; this checks the values as stored, so a deleted render or a mistyped URL shows up here rather than after the next deploy."
+msgstr ""
+
+#: asset-check.php:176
+msgid "Run check now"
+msgstr ""
+
+#: asset-check.php:181
+msgid "Not run yet"
+msgstr ""
+
+#: asset-check.php:182
+msgid "Checking fetches every image URL stored on a page, so it takes around twenty seconds. The result is kept for an hour."
+msgstr ""
+
+#: asset-check.php:183
+msgid "Run the first check"
+msgstr ""
+
+#: asset-check.php:194
+msgid "images checked"
+msgstr ""
+
+#: asset-check.php:195
+msgid "not loading"
+msgstr ""
+
+#: asset-check.php:196
+msgid "on the old domain"
+msgstr ""
+
+#: asset-check.php:199
+msgid "last run"
+msgstr ""
+
+#: asset-check.php:199
+msgid "last run — stopped early on time"
+msgstr ""
+
+#: asset-check.php:206
+msgid "Every image resolves, and none point at the old domain."
+msgstr ""
+
+#: asset-check.php:213
+msgid "Not loading"
+msgstr ""
+
+#: asset-check.php:213
+msgid "The URL is stored on a page but does not answer. Either the render was deleted from the media library or the address was mistyped."
+msgstr ""
+
+#: asset-check.php:214
+msgid "Pointing at the previous site"
+msgstr ""
+
+#. translators: %s is the previous site's hostname.
+#: asset-check.php:214
+#, php-format
+msgid "These resolve today because %s still serves the old WordPress. The hour it serves the new site, every one of them 404s at once."
+msgstr ""
+
+#: asset-check.php:225
+msgid "Used on"
+msgstr ""
+
+#: asset-check.php:232
+msgid "old host"
+msgstr ""
+
+#: broken-links.php:44
+#: broken-links.php:216
+msgid "Broken links"
+msgstr ""
+
+#: broken-links.php:217
+msgid "Addresses visitors asked for and this site does not have. The Cutover check covers everything the old sitemap advertised; this covers what it did not — a link somebody else published, a URL indexed years ago, an address on a business card. Ranked by how often each is asked for, because a path with forty hits and a referrer is a broken link worth fixing and a path with one hit is usually a typo."
+msgstr ""
+
+#: broken-links.php:222
+msgid "Clear the whole list?"
+msgstr ""
+
+#: broken-links.php:222
+msgid "Clear list"
+msgstr ""
+
+#: broken-links.php:235
+msgid "Redirect saved in Rank Math. It reaches visitors at the next frontend build — until then the address still 404s."
+msgstr ""
+
+#: broken-links.php:236
+msgid "Removed from the list. It will come back if somebody asks for it again."
+msgstr ""
+
+#: broken-links.php:237
+msgid "List cleared."
+msgstr ""
+
+#: broken-links.php:238
+msgid "That redirect target was not a site path or a full URL, so nothing was created."
+msgstr ""
+
+#: broken-links.php:239
+msgid "Rank Math would not accept the redirect. Check that its Redirections module is enabled."
+msgstr ""
+
+#: broken-links.php:255
+msgid "addresses missed"
+msgstr ""
+
+#: broken-links.php:256
+msgid "requests for them"
+msgstr ""
+
+#: broken-links.php:257
+msgid "linked from somewhere"
+msgstr ""
+
+#: broken-links.php:258
+msgid "list capacity"
+msgstr ""
+
+#: broken-links.php:264
+msgid "Nothing has 404d"
+msgstr ""
+
+#: broken-links.php:265
+msgid "Either nobody has hit a missing page, or the frontend is not reporting them yet. Reporting needs the LivePress 404 reporter in the frontend's not-found route."
+msgstr ""
+
+#: broken-links.php:274
+msgid "Address asked for"
+msgstr ""
+
+#: broken-links.php:275
+msgid "Linked from"
+msgstr ""
+
+#: broken-links.php:276
+msgid "Last seen"
+msgstr ""
+
+#: broken-links.php:277
+msgid "Redirect it to"
+msgstr ""
+
+#: broken-links.php:293
+msgid "Redirect"
+msgstr ""
+
+#: broken-links.php:294
+msgid "Ignore"
+msgstr ""
+
+#: enquiries.php:141
+msgid "(no name given)"
+msgstr ""
+
+#: enquiries.php:170
+msgid "unknown form"
+msgstr ""
+
+#: enquiries.php:209
+#: enquiries.php:215
+msgid "in the component"
+msgstr ""
+
+#: enquiries.php:219
+msgid "Edit wording"
+msgstr ""
+
+#: enquiries.php:235
+#: enquiries.php:248
+msgid "Forms"
+msgstr ""
+
+#: enquiries.php:249
+msgid "Every form on the site, what it collects, and where it appears. The forms are built into the frontend with layouts made for where they sit, so this lists them rather than rendering them — it is the answer to \"what forms do we have\", which otherwise means reading the frontend source."
+msgstr ""
+
+#: enquiries.php:251
+msgid "See the submissions"
+msgstr ""
+
+#: enquiries.php:258
+msgid "No form registry found"
+msgstr ""
+
+#: enquiries.php:259
+msgid "The list is generated from the frontend. Run `npm run livepress:gen` and deploy livepress-forms.php alongside the schema files."
+msgstr ""
+
+#: enquiries.php:267
+msgid "forms on the site"
+msgstr ""
+
+#: enquiries.php:268
+msgid "submissions all time"
+msgstr ""
+
+#: enquiries.php:269
+msgid "in the last 7 days"
+msgstr ""
+
+#: enquiries.php:270
+msgid "never submitted"
+msgstr ""
+
+#: enquiries.php:278
+msgid "Appears on"
+msgstr ""
+
+#: enquiries.php:282
+msgid "Last one"
+msgstr ""
+
+#: field-orphans.php:38
+#: field-orphans.php:199
+msgid "Schema"
+msgstr ""
+
+#: field-orphans.php:200
+msgid "Stored content that no field claims. This happens when a field is renamed or removed: the value stays in the database under the old key, the page quietly falls back to its built-in copy, and nothing reports an error. The generator now catches this before a deploy; this screen finds what is already here."
+msgstr ""
+
+#. translators: %1$d is how many values moved, %2$s the field key they moved to.
+#: field-orphans.php:205
+#, php-format
+msgid "Moved %1$d value(s) to <code>%2$s</code>."
+msgstr ""
+
+#. translators: %d is how many stored values were deleted.
+#: field-orphans.php:207
+#, php-format
+msgid "Deleted %d stored value(s)."
+msgstr ""
+
+#. translators: %d is how many pages were untouched.
+#: field-orphans.php:222
+#, php-format
+msgid "%d page(s) were left alone because the target field already holds something different. Nothing was overwritten — open those pages and merge by hand."
+msgstr ""
+
+#: field-orphans.php:231
+msgid "fields declared"
+msgstr ""
+
+#: field-orphans.php:232
+msgid "orphaned keys"
+msgstr ""
+
+#: field-orphans.php:233
+msgid "stored values stranded"
+msgstr ""
+
+#: field-orphans.php:234
+msgid "of content"
+msgstr ""
+
+#: field-orphans.php:240
+msgid "Every stored value has a field"
+msgstr ""
+
+#: field-orphans.php:241
+msgid "Nothing in the database is stranded under a key the schema no longer declares."
+msgstr ""
+
+#: field-orphans.php:249
+msgid "Orphaned key"
+msgstr ""
+
+#: field-orphans.php:250
+msgid "Found on"
+msgstr ""
+
+#: field-orphans.php:251
+msgid "What it holds"
+msgstr ""
+
+#: field-orphans.php:262
+msgid "Move to…"
+msgstr ""
+
+#: field-orphans.php:277
+msgid "Remap"
+msgstr ""
+
+#. translators: %d is how many pages hold the value.
+#: field-orphans.php:279
+#, php-format
+msgid "Delete this stored content on %d page(s)? This cannot be undone."
+msgstr ""
+
+#. translators: %d is how many pages hold the value.
+#: field-orphans.php:279
+msgid "Delete"
+msgstr ""
+
+#. translators: %d is how many pages hold this orphaned value.
+#: field-orphans.php:286
+#, php-format
+msgid "%d page"
+msgid_plural "%d pages"
+msgstr[0] ""
+msgstr[1] ""
+
+#: livepress-forms.php:18
+msgid "Home enquiry"
+msgstr ""
+
+#: livepress-forms.php:21
+msgid "The home page"
+msgstr ""
+
+#: livepress-forms.php:28
+msgid "Project enquiry"
+msgstr ""
+
+#: livepress-forms.php:30
+msgid "Contact — Project enquiry"
+msgstr ""
+
+#: livepress-forms.php:38
+msgid "Free render request"
+msgstr ""
+
+#: livepress-forms.php:40
+msgid "Free render — Hero form"
+msgstr ""
+
+#: livepress-forms.php:48
+msgid "Ask a question"
+msgstr ""
+
+#: livepress-forms.php:51
+msgid "/faq and any page using the FAQ block"
+msgstr ""
+
+#: livepress-forms.php:58
+msgid "Footer subscribe"
+msgstr ""
+
+#: livepress-forms.php:61
+msgid "Every page"
+msgstr ""
+
+#: livepress-forms.php:68
+msgid "Journal subscribe"
+msgstr ""
+
+#: livepress-forms.php:71
+msgid "Every article"
+msgstr ""
+
+#: livepress-forms.php:78
+msgid "Journal subscribe (category)"
+msgstr ""
+
+#: livepress-forms.php:81
+msgid "Every category archive"
+msgstr ""
+
+#: livepress-forms.php:88
+msgid "Journal subscribe (author)"
+msgstr ""
+
+#: livepress-forms.php:91
+msgid "Every author archive"
+msgstr ""
+
+#: livepress.php:126
+#: livepress.php:225
+msgid "Site Pages"
+msgstr ""
+
+#: livepress.php:127
+msgid "Site Page"
+msgstr ""
+
+#: livepress.php:128
+msgid "All Site Pages"
+msgstr ""
+
+#: livepress.php:170
+#: livepress.php:196
+msgid "Unknown global"
+msgstr ""
+
+#: livepress.php:200
+msgid "Body must be JSON"
+msgstr ""
+
+#: livepress.php:226
+msgid "Menus"
+msgstr ""
+
+#: livepress.php:227
+msgid "Design"
+msgstr ""
+
+#: livepress.php:263
+msgid "No LivePress-enabled document selected."
+msgstr ""
+
+#. translators: %s is the page slug with no schema.
+#: livepress.php:276
+#, php-format
+msgid "No LivePress schema for \"%s\"."
+msgstr ""
+
+#: livepress.php:321
+#: assets/editor.js:449
+msgid "Somebody else"
+msgstr ""
+
+#: livepress.php:376
+msgid "The brand gold. Buttons, links, rules, and every highlight on the site."
+msgstr ""
+
+#: livepress.php:382
+msgid "Hover states and the lighter half of gradients on the accent."
+msgstr ""
+
+#: livepress.php:388
+msgid "Accent text on a dark panel, where the full gold is too heavy."
+msgstr ""
+
+#: livepress.php:393
+msgid "Page background"
+msgstr ""
+
+#: livepress.php:394
+msgid "The near-black the whole site sits on."
+msgstr ""
+
+#: livepress.php:452
+msgid "The site-chrome document is missing, so there is no navigation to edit. Re-seed it and this screen will open it."
+msgstr ""
+
+#: livepress.php:811
+msgid "You do not have permission to restore this field."
+msgstr ""
+
+#: livepress.php:818
+msgid "That history entry no longer exists."
+msgstr ""
+
+#: migration.php:32
+#: migration.php:215
+msgid "Cutover check"
+msgstr ""
+
+#: migration.php:211
+msgid "Run again"
+msgstr ""
+
+#: migration.php:211
+#: settings.php:239
+msgid "Run the check"
+msgstr ""
+
+#: migration.php:216
+msgid "Takes every URL in the old site's sitemap and asks this site what it does with each one. A redirect only counts as safe when the chain ends in a 200 — a 301 that lands on a 404 looks fine in a spot check and loses the page anyway."
+msgstr ""
+
+#: migration.php:222
+msgid "No sitemap to compare against"
+msgstr ""
+
+#: migration.php:223
+msgid "Set the previous site's host in Settings and this will look for its sitemap automatically, or enter the sitemap address below."
+msgstr ""
+
+#: migration.php:231
+msgid "Old sitemap"
+msgstr ""
+
+#. translators: %s is the address being probed.
+#: migration.php:234
+#, php-format
+msgid "The sitemap the previous site publishes. An index of sitemaps is followed one level, which covers Rank Math, Yoast and WordPress core. Probing runs against %s."
+msgstr ""
+
+#: migration.php:235
+msgid "Use this sitemap and run"
+msgstr ""
+
+#: migration.php:254
+msgid "URLs in the old sitemap"
+msgstr ""
+
+#: migration.php:255
+msgid "answer directly"
+msgstr ""
+
+#: migration.php:256
+msgid "redirect somewhere live"
+msgstr ""
+
+#: migration.php:257
+msgid "would be lost"
+msgstr ""
+
+#. translators: %1$d is URLs checked so far, %2$d the total. Numbered because a translator may need them in the other order.
+#: migration.php:268
+#, php-format
+msgid "Checked %1$d of %2$d so far. Each URL costs up to two requests, so this runs in batches — press Continue to carry on."
+msgstr ""
+
+#: migration.php:275
+msgid "Every URL in the old sitemap resolves on this site. Nothing in it would 404 at cutover."
+msgstr ""
+
+#: migration.php:293
+msgid "Old URL"
+msgstr ""
+
+#: migration.php:295
+msgid "Where it lands"
+msgstr ""
+
+#: migration.php:309
+msgid "no answer"
+msgstr ""
+
+#: migration.php:321
+msgid "stays here"
+msgstr ""
+
+#: schedule.php:135
+#: schedule.php:140
+msgid "No preview for that link."
+msgstr ""
+
+#: schedule.php:209
+msgid "Choose a time in the future."
+msgstr ""
+
+#: schedule.php:224
+msgid "Nothing to schedule."
+msgstr ""
+
+#: schedule.php:228
+msgid "Could not schedule that change."
+msgstr ""
+
+#: schedule.php:322
+msgid "Scheduled"
+msgstr ""
+
+#: schedule.php:331
+msgid "Scheduled changes"
+msgstr ""
+
+#: schedule.php:332
+msgid "Field changes waiting to go live. These pages stay published throughout — what is scheduled is the edit, not the page. When it lands, the previous value is recorded in Field history and the frontend is rebuilt immediately."
+msgstr ""
+
+#: schedule.php:337
+msgid "Nothing scheduled"
+msgstr ""
+
+#: schedule.php:338
+msgid "Open a page in the editor, make your changes, and choose a time instead of publishing straight away. It will appear here until it goes out."
+msgstr ""
+
+#: schedule.php:340
+msgid "Go to Site Pages"
+msgstr ""
+
+#: schedule.php:357
+msgid "change waiting"
+msgstr ""
+
+#: schedule.php:357
+msgid "changes waiting"
+msgstr ""
+
+#: schedule.php:358
+msgid "next one out"
+msgstr ""
+
+#: schedule.php:359
+msgid "missing a cron event"
+msgstr ""
+
+#: schedule.php:365
+#: assets/editor.js:594
+msgid "Goes live"
+msgstr ""
+
+#: schedule.php:367
+msgid "Scheduled by"
+msgstr ""
+
+#: schedule.php:386
+msgid "Cancel"
+msgstr ""
+
+#: schedule.php:391
+msgid "cron event missing"
+msgstr ""
+
+#: settings.php:33
+#: settings.php:127
+#: settings.php:132
+#: settings.php:138
+msgid "Frontend URL"
+msgstr ""
+
+#: settings.php:34
+#: settings.php:173
+msgid "Revalidate secret"
+msgstr ""
+
+#: settings.php:35
+msgid "Previous site host"
+msgstr ""
+
+#: settings.php:54
+#: settings.php:237
+msgid "Settings"
+msgstr ""
+
+#: settings.php:127
+#: settings.php:175
+msgid "Not set."
+msgstr ""
+
+#: settings.php:127
+msgid "Enter the address your Next.js site runs on."
+msgstr ""
+
+#: settings.php:134
+msgid " — a local address."
+msgstr ""
+
+#: settings.php:135
+msgid "This only works while you are editing on the same machine that runs the dev server. Point it at a deployed URL for anyone else."
+msgstr ""
+
+#: settings.php:145
+#: settings.php:148
+msgid "Frontend responds"
+msgstr ""
+
+#: settings.php:151
+msgid "The editor previews this URL in an iframe. While it does not answer, the right-hand pane stays blank and the plugin looks broken."
+msgstr ""
+
+#: settings.php:161
+#: settings.php:163
+msgid "Edit bridge"
+msgstr ""
+
+#: settings.php:161
+msgid "The frontend is listening for live edits."
+msgstr ""
+
+#: settings.php:165
+msgid "No edit markers found on the home page."
+msgstr ""
+
+#: settings.php:166
+msgid "The preview will render but will not update as you type. Check that the frontend imports the LivePress bridge and that edit mode is active inside an iframe."
+msgstr ""
+
+#: settings.php:176
+msgid "Publishing still saves, but the frontend will not rebuild until its own cache expires. Generate one here and put the same value in the frontend environment."
+msgstr ""
+
+#: settings.php:192
+#: settings.php:195
+#: settings.php:202
+#: settings.php:209
+msgid "Instant publish"
+msgstr ""
+
+#: settings.php:192
+msgid "The frontend accepted a revalidation for /."
+msgstr ""
+
+#: settings.php:197
+msgid "The frontend rejected the secret (HTTP "
+msgstr ""
+
+#: settings.php:198
+msgid "WordPress and the frontend hold different secrets. Copy the value below into the frontend environment and redeploy."
+msgstr ""
+
+#: settings.php:204
+msgid "No /api/revalidate route on the frontend."
+msgstr ""
+
+#: settings.php:205
+msgid "Saves will still publish, but the page updates on its own schedule rather than in seconds. Add the revalidate route to the frontend."
+msgstr ""
+
+#: settings.php:212
+msgid "The revalidate endpoint did not answer as expected."
+msgstr ""
+
+#: settings.php:238
+msgid "Where the frontend lives and how WordPress reaches it. The check below does not read these values back to you — it uses them, and reports which link in the chain is broken."
+msgstr ""
+
+#: settings.php:243
+msgid "Settings saved. Run the check to confirm the frontend agrees."
+msgstr ""
+
+#. translators: %s is the LIVEPRESS_REVALIDATE_SECRET constant name, in <code>.
+#: settings.php:250
+#, php-format
+msgid "New secret generated. Copy it into the frontend environment as %s and redeploy, or instant publish will stop working until you do."
+msgstr ""
+
+#: settings.php:262
+msgid "Connection"
+msgstr ""
+
+#: settings.php:267
+msgid "What happened"
+msgstr ""
+
+#: settings.php:285
+msgid "The check produced no results, which should not happen. Try again."
+msgstr ""
+
+#: settings.php:290
+msgid "Connection settings"
+msgstr ""
+
+#: settings.php:299
+msgid "The address of the Next.js site this WordPress feeds. The editor previews it in an iframe, so it must be reachable from your browser."
+msgstr ""
+
+#: settings.php:300
+msgid "Shared with the frontend so a save can rebuild the affected pages in seconds instead of waiting for a cache to expire. It must match the frontend environment exactly."
+msgstr ""
+
+#: settings.php:301
+msgid "Optional, and only during a migration. The domain the site used to run on — the Images screen flags any asset still pointing there, because those stop resolving the hour that domain changes hands."
+msgstr ""
+
+#: settings.php:318
+msgid "Save settings"
+msgstr ""
+
+#: settings.php:319
+msgid "Generate a new secret"
+msgstr ""
+
+#. translators: %s names the action being undone, e.g. "delete row from Photos".
+#: assets/editor.js:189
+#, js-format
+msgid "Undone: %s"
+msgstr ""
+
+#: assets/editor.js:290
+msgid "Nothing has changed since this page was opened."
+msgstr ""
+
+#: assets/editor.js:300
+msgid "Before"
+msgstr ""
+
+#: assets/editor.js:304
+msgid "After"
+msgstr ""
+
+#: assets/editor.js:316
+#: assets/editor.js:589
+msgid "Close"
+msgstr ""
+
+#: assets/editor.js:321
+msgid "Discard all changes"
+msgstr ""
+
+#. translators: %d is how many unsaved changes there are.
+#: assets/editor.js:326
+#, js-format
+msgid "Discard %d change and reload the saved version?"
+msgid_plural "Discard %d changes and reload the saved version?"
+msgstr[0] ""
+msgstr[1] ""
+
+#: assets/editor.js:339
+msgid "Publish"
+msgstr ""
+
+#. translators: %s is the name of the person already editing.
+#: assets/editor.js:411
+#, js-format
+msgid "%s opened this page before you and may still be editing it. You can carry on — changes to different fields merge, and anything that clashes is flagged when you save."
+msgstr ""
+
+#. translators: %s is the name of the person who took over.
+#: assets/editor.js:448
+#, js-format
+msgid "%s has opened this page since you did. Your unsaved work is still here; save when you are ready and anything that clashes will be flagged."
+msgstr ""
+
+#: assets/editor.js:486
+msgid "Copy preview link"
+msgstr ""
+
+#: assets/editor.js:494
+msgid "Link copied"
+msgstr ""
+
+#: assets/editor.js:501
+#: assets/editor.js:503
+msgid "Copy this link:"
+msgstr ""
+
+#: assets/editor.js:508
+msgid "Cancel it"
+msgstr ""
+
+#: assets/editor.js:527
+msgid "Nothing has changed yet, so there is nothing to schedule. Edit a field first."
+msgstr ""
+
+#: assets/editor.js:555
+#: assets/editor.js:1740
+msgid "Schedule"
+msgstr ""
+
+#: assets/editor.js:588
+msgid "Schedule this change"
+msgstr ""
+
+#: assets/editor.js:786
+msgid "loading"
+msgstr ""
+
+#: assets/editor.js:870
+msgid "Jump to a field"
+msgstr ""
+
+#: assets/editor.js:902
+msgid "↑↓ to move"
+msgstr ""
+
+#: assets/editor.js:903
+msgid "Enter to jump"
+msgstr ""
+
+#: assets/editor.js:904
+msgid "Esc to close"
+msgstr ""
+
+#: assets/editor.js:923
+msgid "Drag to resize"
+msgstr ""
+
+#: assets/editor.js:1046
+msgid "Alt text updated from the Media Library."
+msgstr ""
+
+#: assets/editor.js:1052
+msgid "That image has no alt text in the Media Library, so the old alt text is still here — check it still describes the new picture."
+msgstr ""
+
+#: assets/editor.js:1060
+msgid "Choose from the Media Library"
+msgstr ""
+
+#: assets/editor.js:1062
+msgid "Choose"
+msgstr ""
+
+#: assets/editor.js:1064
+msgid "Choose image"
+msgstr ""
+
+#: assets/editor.js:1075
+msgid "Upload a file from this computer"
+msgstr ""
+
+#: assets/editor.js:1077
+msgid "Upload"
+msgstr ""
+
+#: assets/editor.js:1132
+msgid "Drag to reorder"
+msgstr ""
+
+#: assets/editor.js:1193
+msgid "Duplicate row"
+msgstr ""
+
+#: assets/editor.js:1204
+msgid "Remove row"
+msgstr ""
+
+#: assets/editor.js:1238
+msgid "+ Add row"
+msgstr ""
+
+#: assets/editor.js:1310
+msgid "Reset"
+msgstr ""
+
+#: assets/editor.js:1311
+msgid "Back to the brand value, "
+msgstr ""
+
+#: assets/editor.js:1373
+msgid "No design tokens are exposed."
+msgstr ""
+
+#: assets/editor.js:1381
+msgid "Reset all to brand"
+msgstr ""
+
+#: assets/editor.js:1383
+msgid "Put every colour back to the brand default?"
+msgstr ""
+
+#: assets/editor.js:1719
+msgid "livepress · "
+msgstr ""
+
+#: assets/editor.js:1724
+msgid "Open Rank Math analysis for this page"
+msgstr ""
+
+#: assets/editor.js:1724
+msgid "SEO"
+msgstr ""
+
+#: assets/editor.js:1732
+msgid "Find a field"
+msgstr ""
+
+#: assets/editor.js:1735
+msgid "Find"
+msgstr ""
+
+#: assets/editor.js:1738
+msgid "Undo"
+msgstr ""
+
+#: assets/editor.js:1738
+msgid "Nothing to undo"
+msgstr ""
+
+#: assets/editor.js:1739
+msgid "Review"
+msgstr ""
+
+#: assets/editor.js:1741
+msgid "Save"
+msgstr ""
