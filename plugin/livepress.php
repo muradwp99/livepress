@@ -3,7 +3,7 @@
  * Plugin Name: LivePress
  * Plugin URI:  https://github.com/muradwp99/livepress
  * Description: Realtime visual editing for headless WordPress. One "Site Pages" list; every page opens a fullscreen editor — fields left, live preview of your real frontend right — streaming every keystroke into the rendered site before saving.
- * Version:     1.5.2
+ * Version:     1.5.5
  * Author:      Murad
  * License:     MIT
  * Text Domain: livepress
@@ -42,6 +42,8 @@ require_once __DIR__ . '/activity.php';
 require_once __DIR__ . '/page-text.php';
 require_once __DIR__ . '/asset-check.php';
 require_once __DIR__ . '/schedule.php';
+require_once __DIR__ . '/headless.php';
+require_once __DIR__ . '/seo-meta.php';
 
 /**
  * Global option keys the PUBLIC, unauthenticated read route will serve.

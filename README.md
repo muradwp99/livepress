@@ -21,6 +21,8 @@ plugin/                 the WordPress plugin
   livepress-schema.php  loader — globs schema-*.php beside it
   admin-screens.php     Content health, Field history
   settings.php          frontend URL, exposed design tokens
+  headless.php          public page views 301 to the frontend
+  seo-meta.php          SEO fields writable over REST
   activity.php          who changed what, when
   schedule.php          publish a pending change at a chosen time
   migration.php         move field keys without losing values
