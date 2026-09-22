@@ -1314,7 +1314,106 @@
 			return /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test( d[ t.key ] || "" ) ? d[ t.key ] : t.fallback;
 		}
 
+		/* A length token gets a slider for feel and a number for precision, both
+		   in the unit PHP declared. Stored bare — the frontend appends the unit,
+		   which is why 0 is a real setting here and not an empty one.
+
+		   Same rule as the colours: a value equal to the brand default is not an
+		   override and is deleted, so Reset hands the token back to the
+		   stylesheet instead of pinning it to whatever the stylesheet says
+		   today. */
+		function lengthRow( t ) {
+			var min = Number( t.min != null ? t.min : 0 );
+			var max = Number( t.max != null ? t.max : 32 );
+			var step = Number( t.step || 1 );
+			var unit = t.unit || "px";
+			var fallback = Number( t.fallback );
+
+			function currentLen() {
+				var v = parseFloat( d[ t.key ] );
+				return isNaN( v ) ? fallback : Math.min( max, Math.max( min, v ) );
+			}
+
+			var range = el( "input", {
+				class: "lp-range",
+				type: "range",
+				min: min,
+				max: max,
+				step: step,
+				"aria-label": t.label,
+			} );
+			var num = el( "input", {
+				class: "lp-input lp-num",
+				type: "number",
+				min: min,
+				max: max,
+				step: step,
+				"aria-label": t.label + " in " + unit,
+			} );
+			var suffix = el( "span", { class: "lp-unit", text: unit } );
+			var reset = el( "button", {
+				class: "lp-mini",
+				type: "button",
+				text: __( "Reset", "livepress" ),
+				title: __( "Back to the brand value, ", "livepress" ) + fallback + unit,
+			} );
+
+			var row = el( "div", { class: "lp-field lp-token" + ( d[ t.key ] ? " is-changed" : "" ) }, [
+				el( "label", { class: "lp-label", text: t.label } ),
+				el( "div", { class: "lp-token-row is-length" }, [ range, num, suffix, reset ] ),
+				el( "p", { class: "lp-hint", text: t.hint } ),
+			] );
+
+			function paint( value, alsoNum ) {
+				var v = parseFloat( value );
+				if ( isNaN( v ) ) { return; }
+				v = Math.min( max, Math.max( min, v ) );
+				range.value = v;
+				if ( alsoNum ) { num.value = v; }
+				if ( v === fallback ) {
+					delete d[ t.key ];
+				} else {
+					d[ t.key ] = String( v );
+				}
+				row.classList.toggle( "is-changed", Boolean( d[ t.key ] ) );
+			}
+
+			range.value = currentLen();
+			num.value = currentLen();
+
+			range.addEventListener( "focus", endEdit );
+			range.addEventListener( "blur", endEdit );
+			range.addEventListener( "input", function () {
+				noteEdit( __( "change", "livepress" ) + " " + t.label, "token:" + t.key );
+				paint( range.value, true );
+				push();
+			} );
+
+			/* An empty box is mid-typing, not a zero — wait for a number. */
+			num.addEventListener( "input", function () {
+				if ( "" === num.value.trim() ) { return; }
+				noteEdit( __( "change", "livepress" ) + " " + t.label, "token:" + t.key );
+				paint( num.value, false );
+				push();
+			} );
+			num.addEventListener( "blur", function () { num.value = currentLen(); } );
+
+			reset.addEventListener( "click", function () {
+				pushUndo( "reset " + t.label );
+				paint( fallback, true );
+				push();
+			} );
+
+			rows.push( { def: t, paint: paint, row: row } );
+			return row;
+		}
+
 		tokens.forEach( function ( t ) {
+			if ( "length" === t.kind ) {
+				box.appendChild( lengthRow( t ) );
+				return;
+			}
+
 			var swatch = el( "input", { class: "lp-swatch", type: "color", "aria-label": t.label } );
 			var hex = el( "input", {
 				class: "lp-input lp-hex",
@@ -1399,8 +1498,8 @@
 				type: "button",
 				text: __( "Reset all to brand", "livepress" ),
 				onclick: function () {
-					if ( ! window.confirm( __( "Put every colour back to the brand default?", "livepress" ) ) ) { return; }
-					pushUndo( "reset every colour" );
+					if ( ! window.confirm( __( "Put every value back to the brand default?", "livepress" ) ) ) { return; }
+					pushUndo( "reset every token" );
 					rows.forEach( function ( r ) { r.paint( r.def.fallback, true ); } );
 					push();
 				},
