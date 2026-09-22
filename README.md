@@ -134,6 +134,13 @@ frontend → admin:
 `value`: string | string[] | row[]. The bridge validates path shape and
 applies immutably.
 
+`path` matches `/^[a-zA-Z][a-zA-Z0-9._]{0,80}$/`. Underscores were missing
+from that pattern until 1.1, which mattered more than it sounds: schemas are
+flat WordPress meta keys now, `path === key`, and every one of them looks like
+`hero_title`. Anything a schema sent failed the test and was dropped one key at
+a time, with no error and a preview that simply never moved. Dots still work,
+for a frontend overlaying onto a nested object.
+
 ## Wiring a page (the 4-step recipe)
 
 1. **Route**: fetch the `sitepage` doc, `useLiveEdits(doc)`, render every
@@ -172,9 +179,20 @@ them through the same bridge a live keystroke uses, and adds `noindex`. A
 dead link shows the published page, which is the honest failure — the change
 is gone or already live, and either way what you see is what is true.
 
-Needs the frontend half: `previewToken()` / `startPreview()` in the bridge,
-and a route that proxies to `/wp-json/livepress/v1/preview/{token}` so the
-CMS hostname stays out of the client bundle.
+The frontend half ships in bridge 1.1. `useLiveEdits()` picks the token up on
+its own, moves it straight out of the address bar into `sessionStorage` and
+rewrites the URL — a token in a query string ends up in browser history, in
+access logs, and on the screen of whoever you are sharing it with — then adds
+`noindex` and overlays the values through the same path a live keystroke uses.
+
+`isPreviewMode()` answers whether a preview is active without changing
+anything, for the things that should stay out of the way: a cookie banner has
+no business appearing over a page somebody was sent to approve.
+
+You still supply the route it fetches, which proxies
+`/wp-json/livepress/v1/preview/{token}` so the CMS hostname stays out of the
+client bundle. It defaults to `/api/preview/<token>`; `configurePreviewPath()`
+moves it.
 
 ## Who else has the page open
 

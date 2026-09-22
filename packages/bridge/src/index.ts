@@ -19,7 +19,19 @@ import { useSyncExternalStore } from "react";
 
 type EditValue = string | string[] | Record<string, string>[];
 
-const PATH_RE = /^[a-zA-Z][a-zA-Z0-9.]{0,80}$/;
+/**
+ * Shape of a path the bridge will accept.
+ *
+ * Underscores matter. LivePress used to send dot paths into a nested content
+ * object; its schemas are now flat WordPress meta keys, with `path === key`
+ * and no dots at all, and every one of those keys looks like `hero_title`.
+ * This pattern excluded `_`, so a modern schema's edits failed the test and
+ * were dropped — silently, one by one, with the preview simply never moving.
+ *
+ * Dots stay allowed: a frontend that still overlays onto a nested object is
+ * a supported shape, and `setPath` below walks either.
+ */
+const PATH_RE = /^[a-zA-Z][a-zA-Z0-9._]{0,80}$/;
 
 /**
  * Origins allowed to drive this page.
@@ -56,6 +68,115 @@ function tellEditor(msg: Record<string, unknown>) {
       /* no parent, or it went away */
     }
   }
+}
+
+/**
+ * Where to fetch a preview's values from.
+ *
+ * A path on your own origin, not the WordPress host: the route behind it
+ * proxies `/wp-json/livepress/v1/preview/{token}`, which keeps the CMS
+ * hostname out of the client bundle and the token out of a cross-origin
+ * request. The default matches the convention in the README; override it if
+ * your app routes differently.
+ */
+let previewPath = "/api/preview";
+
+export function configurePreviewPath(path: string) {
+  previewPath = String(path).replace(/\/$/, "");
+}
+
+/**
+ * The preview token, taken out of the address bar as soon as it is read.
+ *
+ * A token in a query string is the classic secret-in-URL problem. The worst of
+ * it — leaking to every third party the page loads, through the Referer header
+ * — is closed by a `strict-origin-when-cross-origin` referrer policy, which
+ * most frameworks set by default and which is worth confirming rather than
+ * assuming.
+ *
+ * What no referrer policy touches is the recipient's browser history, the
+ * host's own access logs, and the token sitting in the address bar of a screen
+ * somebody may well be sharing — which is a plausible thing to be doing with a
+ * page you are reviewing together.
+ *
+ * So the token moves to sessionStorage and the URL is rewritten without it.
+ * sessionStorage rather than dropping it, because a reload would otherwise
+ * fall back to the published page and somebody comparing a change against what
+ * is live would have no idea which they were looking at.
+ */
+const PREVIEW_STORE = "lp-preview-token";
+
+export function previewToken(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const url = new URL(window.location.href);
+    const fromUrl = url.searchParams.get("lp_preview");
+    if (fromUrl) {
+      try {
+        window.sessionStorage.setItem(PREVIEW_STORE, fromUrl);
+      } catch {
+        /* Private mode. The preview still works for this page view; it just
+           will not survive a reload, which is the lesser cost. */
+      }
+      url.searchParams.delete("lp_preview");
+      window.history.replaceState(null, "", url.pathname + url.search + url.hash);
+      return fromUrl;
+    }
+    return window.sessionStorage.getItem(PREVIEW_STORE);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Is a preview active? Asks without changing anything.
+ *
+ * `previewToken()` moves the token into sessionStorage and rewrites the URL,
+ * which is the right thing to do once and the wrong thing to do from a render.
+ * Anything that only needs to KNOW uses this — suppressing a cookie banner
+ * inside the editor pane, say.
+ */
+export function isPreviewMode(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    if (new URLSearchParams(window.location.search).has("lp_preview")) return true;
+    return !!window.sessionStorage.getItem(PREVIEW_STORE);
+  } catch {
+    return false;
+  }
+}
+
+let previewLoaded = false;
+
+function startPreview(token: string) {
+  if (previewLoaded) return;
+  previewLoaded = true;
+
+  /* A preview shows content that is deliberately not published yet. Telling
+     crawlers not to keep it is cheap; discovering later that a scheduled
+     announcement was indexed a week early is not. */
+  if (typeof document !== "undefined") {
+    const meta = document.createElement("meta");
+    meta.name = "robots";
+    meta.content = "noindex, nofollow";
+    document.head.appendChild(meta);
+  }
+
+  fetch(`${previewPath}/${encodeURIComponent(token)}`, { cache: "no-store" })
+    .then((r) => (r.ok ? r.json() : null))
+    .then((data: { values?: Record<string, EditValue> } | null) => {
+      if (!data?.values) return;
+      const next = { ...overrides };
+      for (const [path, value] of Object.entries(data.values)) {
+        if (PATH_RE.test(path)) next[path] = value;
+      }
+      overrides = next;
+      emit();
+    })
+    .catch(() => {
+      /* A dead or cancelled link simply shows the published page, which is the
+         honest thing for it to do. */
+    });
 }
 
 let overrides: Record<string, EditValue> = {};
@@ -159,6 +280,8 @@ export function useLiveEdits<T>(base: T): T {
   const v = useSyncExternalStore(
     (cb) => {
       if (isEditMode()) startListener();
+      const token = previewToken();
+      if (token) startPreview(token);
       listeners.add(cb);
       return () => listeners.delete(cb);
     },
@@ -166,7 +289,7 @@ export function useLiveEdits<T>(base: T): T {
     () => 0,
   );
   void v;
-  if (!isEditMode()) return base;
+  if (!isEditMode() && !previewLoaded) return base;
   let out = base;
   for (const [path, value] of Object.entries(overrides)) {
     out = setPath(out, path, value);
