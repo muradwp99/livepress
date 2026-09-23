@@ -63,12 +63,21 @@ Copy `examples/schema-faq.php` to `plugin/schema-home.php` and edit.
 > that the glob is not fussy: `schema-anything.example.php` matches too, so
 > keep samples out of the plugin root.
 
-Field kinds: `text`, `textarea`, `lines` (newline list), `repeater` (sub-kind
-`image` adds a Media Library picker). Every schema field is auto-registered as
-REST-visible post meta.
+Field kinds: `text`, `textarea`, `lines` (newline list), `image`, `repeater`
+(sub-kind `image` adds a Media Library picker), and three that collections
+brought: `bool` (a checkbox, stored `"1"` or `""`), `order` (the post's own
+`menu_order`, never meta) and `pick` (chosen items of a collection, in order,
+stored as a JSON array of post ids). Every schema field except `order` is
+auto-registered as REST-visible post meta.
 
-Create one `sitepage` doc per schema key (slug = key). Collections: filter
-`livepress_collections` with post types and add `collection:{type}` schemas.
+Create one `sitepage` doc per schema key (slug = key).
+
+Collections — many posts of one type, such as photos — are declared the same
+way: a `collection:{type}` schema is the whole declaration, and LivePress
+registers the post type, its labels and its taxonomy from it
+(`collections.php`). Items are edited in the same fullscreen editor, preview
+on the schema's `frontendPath`, and are read by the frontend over plain WP
+REST. The `livepress_collections` filter still adds or removes types by hand.
 
 ### 2. Frontend
 
@@ -131,7 +140,8 @@ configureEditOrigins("https://admin.example.com");
 ```
 admin → frontend:
   { type: "aux-edit",      path: "hero.title", value }    // dot-path overlay
-  { type: "aux-edit-bulk", edits: [{ path, value }] }
+  { type: "aux-edit",      path: "photo_title", value, item: 11821 }
+  { type: "aux-edit-bulk", edits: [{ path, value, item? }] }
   { type: "aux-edit-reset" }
   { type: "aux-design",    tokens: { radius, ... } }
   { type: "aux-menu",      nav: [{ key, label, visible }] }
@@ -143,6 +153,20 @@ frontend → admin:
 
 `value`: string | string[] | row[]. The bridge validates path shape and
 applies immutably.
+
+`item` is the post id of the collection item being edited, sent in collection
+mode only. A photo previews on the whole photos grid, so `photo_title` alone
+would not say which photo it belongs to; the bridge keeps these edits apart
+from the page's own, and a page that shows many items reads them with
+`useLiveItemEdits()` — post id → that item's unsaved fields — and lays them
+over the item with the same mapping it publishes with. A message without
+`item` is a page edit, exactly as before, and one whose `item` is not a post id
+lands nowhere. An unpublished item is not on the page the preview shows, so
+the editor sends nothing for it and says why.
+
+Before 1.5.8 no `lines` or `repeater` edit reached a flat-meta frontend: the
+editor posts the list and the rows themselves, and readers that accepted only
+WordPress's text sent every one back to the fallback. Read both shapes.
 
 `path` matches `/^[a-zA-Z][a-zA-Z0-9._]{0,80}$/`. Underscores were missing
 from that pattern until 1.1, which mattered more than it sounds: schemas are
@@ -224,7 +248,8 @@ not anyone was warned.
 
 Choosing a new image pulls that attachment's alt text from the Media Library
 into the picture's paired alt field — `cta_img` beside `cta_img_alt` for a
-top-level field, `src` beside plain `alt` inside a repeater. If the attachment
+top-level field, `photo_src` beside `photo_alt` in a collection, `src` beside
+plain `alt` inside a repeater. If the attachment
 has no alt text (a fresh upload never does) the existing text is left alone
 and flagged, because deleting somebody's sentence is not the picker's call.
 
