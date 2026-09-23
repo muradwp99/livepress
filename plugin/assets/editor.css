@@ -625,6 +625,27 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   text-transform: lowercase;
 }
+/* A length token carries four controls where a colour carries three, and the
+   slider wants the room rather than the readout, so the track order is
+   reversed: value last, control first. */
+.lp-token-row.is-length {
+  grid-template-columns: 1fr 72px auto auto;
+}
+.lp-range {
+  width: 100%;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.lp-range:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+.lp-num {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  text-align: right;
+}
+.lp-unit {
+  font-size: var(--t-sm);
+  color: var(--ink-3);
+}
+
 /* Typing a half-finished hex is normal, so this marks the field rather than
    rejecting the keystroke — the preview simply waits for a real colour. */
 .lp-hex.is-invalid { border-color: var(--warn); }

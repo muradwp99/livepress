@@ -93,6 +93,16 @@ inert outside the editor iframe (or `?edit=1`) — zero production cost.
 Optional live channels (globals): listen for `aux-design` (CSS variable
 tokens), `aux-menu` (nav config), `aux-footer` — see the protocol below.
 
+The Design screen's controls are declared in `livepress_design_tokens()`, not
+hard-coded into the editor. A token is a colour unless it says
+`kind => 'length'`, which renders a slider and a number instead of a swatch and
+carries `min`/`max`/`step`/`unit` — corner radius is the one that ships. A
+length is stored bare so the frontend appends the unit, which is what makes `0`
+a real setting rather than an empty one. In both kinds a value equal to the
+declared fallback is deleted instead of stored, so Reset hands the token back
+to your stylesheet rather than pinning it to whatever the stylesheet says
+today.
+
 ### Allowing the editor to drive the page
 
 ```ts

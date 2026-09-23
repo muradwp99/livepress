@@ -3,7 +3,7 @@
  * Plugin Name: LivePress
  * Plugin URI:  https://github.com/muradwp99/livepress
  * Description: Realtime visual editing for headless WordPress. One "Site Pages" list; every page opens a fullscreen editor — fields left, live preview of your real frontend right — streaming every keystroke into the rendered site before saving.
- * Version:     1.5.8
+ * Version:     1.6.1
  * Author:      Murad
  * License:     MIT
  * Text Domain: livepress
@@ -387,6 +387,11 @@ function livepress_render_editor() {
  * counted rather than guessed (gold-500 is used 455 times, gold-400 221,
  * gold-300 100, ink-950 302). `gold-700` is used three times and is not worth
  * a control.
+ * A token is a colour unless it says otherwise. `kind => 'length'` gets a
+ * slider and a number instead of a swatch, and carries min/max/step/unit; the
+ * value is stored bare and the frontend appends the unit, which is what makes
+ * 0 a legitimate setting rather than an empty one. `check-design-tokens.ts`
+ * compares hexes, so a length has nothing there to disagree with.
  */
 function livepress_design_tokens(): array {
 	return array(
@@ -413,6 +418,17 @@ function livepress_design_tokens(): array {
 			'label'    => __( 'Page background', 'livepress' ),
 			'hint'     => __( 'The near-black the whole site sits on.', 'livepress' ),
 			'fallback' => '#05060a',
+		),
+		array(
+			'key'      => 'radius',
+			'kind'     => 'length',
+			'label'    => __( 'Corner radius', 'livepress' ),
+			'hint'     => __( 'How round every card, button, input and image is. 0 squares the site off.', 'livepress' ),
+			'fallback' => 12,
+			'min'      => 0,
+			'max'      => 24,
+			'step'     => 1,
+			'unit'     => 'px',
 		),
 	);
 }
