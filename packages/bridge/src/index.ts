@@ -9,15 +9,22 @@
  *
  * Message contract (admin → frontend):
  *   { type: "aux-edit", path: "hero.headline", value: "New text" }
- *   { type: "aux-edit-bulk", edits: [{ path, value }, ...] }
+ *   { type: "aux-edit", path: "photo_title", value: "New text", item: 11821 }
+ *   { type: "aux-edit-bulk", edits: [{ path, value, item? }, ...] }
  *   { type: "aux-edit-reset" }
  *
  * `path` is a dot path into the page's content object. `value` is a string,
  * string[] (line lists) or object[] (repeaters).
+ *
+ * `item` is the post id of one collection item, for a page that shows many:
+ * a photo previews on the whole photos grid, so `photo_title` alone would not
+ * say which of them it belongs to. Those edits are kept apart from the page's
+ * own and read with `useLiveItemEdits()`. A message without `item` is a page
+ * edit, as every edit was before collections, so older editors are unaffected.
  */
 import { useSyncExternalStore } from "react";
 
-type EditValue = string | string[] | Record<string, string>[];
+export type EditValue = string | string[] | Record<string, string>[];
 
 /**
  * Shape of a path the bridge will accept.
@@ -166,11 +173,11 @@ function startPreview(token: string) {
     .then((r) => (r.ok ? r.json() : null))
     .then((data: { values?: Record<string, EditValue> } | null) => {
       if (!data?.values) return;
-      const next = { ...overrides };
+      const next = { ...store.page };
       for (const [path, value] of Object.entries(data.values)) {
         if (PATH_RE.test(path)) next[path] = value;
       }
-      overrides = next;
+      store = { ...store, page: next };
       emit();
     })
     .catch(() => {
@@ -179,7 +186,45 @@ function startPreview(token: string) {
     });
 }
 
-let overrides: Record<string, EditValue> = {};
+/**
+ * Everything the editor has changed and not saved: the page's own fields,
+ * and each collection item's by post id (see `item` above). Replaced whole on
+ * every change, never mutated.
+ */
+export type EditStore = {
+  page: Record<string, EditValue>;
+  items: Record<number, Record<string, EditValue>>;
+};
+
+const EMPTY_STORE: EditStore = { page: {}, items: {} };
+let store: EditStore = EMPTY_STORE;
+
+/**
+ * Where an edit belongs: the page, one collection item (its post id), or
+ * nowhere (null) when `item` is present but is not a post id.
+ *
+ * The origin has been checked by then, but the payload is only what the
+ * sender says it is. WordPress never issues 0 or a negative id, and the
+ * editor sends a number, so anything else did not come from it — and must
+ * not land on the page either, where `photo_title` would sit in its meta.
+ */
+export function editTarget(item: unknown): "page" | number | null {
+  if (item === undefined || item === null) return "page";
+  return typeof item === "number" && Number.isInteger(item) && item > 0 ? item : null;
+}
+
+/**
+ * The store after one edit. Pure, so where an edit lands can be tested
+ * without a window. An edit whose `item` is not a post id returns the same
+ * store, untouched.
+ */
+export function withEdit(s: EditStore, path: string, value: EditValue, item: unknown): EditStore {
+  const target = editTarget(item);
+  if (target === "page") return { ...s, page: { ...s.page, [path]: value } };
+  if (target === null) return s;
+  return { ...s, items: { ...s.items, [target]: { ...s.items[target], [path]: value } } };
+}
+
 let version = 0;
 const listeners = new Set<() => void>();
 
@@ -208,21 +253,25 @@ function startListener() {
   window.addEventListener("message", (e: MessageEvent) => {
     if (!isEditOrigin(e.origin)) return;
     const data = e.data as
-      | { type?: string; path?: string; value?: EditValue; edits?: { path: string; value: EditValue }[] }
+      | {
+          type?: string;
+          path?: string;
+          value?: EditValue;
+          item?: unknown;
+          edits?: { path: string; value: EditValue; item?: unknown }[];
+        }
       | null;
     if (!data || typeof data !== "object") return;
     if (data.type === "aux-edit" && typeof data.path === "string" && PATH_RE.test(data.path)) {
-      overrides = { ...overrides, [data.path]: data.value as EditValue };
+      store = withEdit(store, data.path, data.value as EditValue, data.item);
       emit();
     } else if (data.type === "aux-edit-bulk" && Array.isArray(data.edits)) {
-      const next = { ...overrides };
       for (const ed of data.edits) {
-        if (ed && typeof ed.path === "string" && PATH_RE.test(ed.path)) next[ed.path] = ed.value;
+        if (ed && typeof ed.path === "string" && PATH_RE.test(ed.path)) store = withEdit(store, ed.path, ed.value, ed.item);
       }
-      overrides = next;
       emit();
     } else if (data.type === "aux-edit-reset") {
-      overrides = {};
+      store = EMPTY_STORE;
       emit();
     }
   });
@@ -272,27 +321,38 @@ function setPath<T>(obj: T, path: string, value: EditValue): T {
   return root as T;
 }
 
+/* Module-level so both hooks share one subscription path, and React sees the
+   same function on every render instead of resubscribing each time. */
+function subscribe(cb: () => void) {
+  if (isEditMode()) startListener();
+  const token = previewToken();
+  if (token) startPreview(token);
+  listeners.add(cb);
+  return () => listeners.delete(cb);
+}
+
 /**
  * Overlay live edits onto loader content. Outside edit mode this returns
  * `base` untouched (and subscribes to nothing meaningful).
  */
 export function useLiveEdits<T>(base: T): T {
-  const v = useSyncExternalStore(
-    (cb) => {
-      if (isEditMode()) startListener();
-      const token = previewToken();
-      if (token) startPreview(token);
-      listeners.add(cb);
-      return () => listeners.delete(cb);
-    },
-    () => version,
-    () => 0,
-  );
+  const v = useSyncExternalStore(subscribe, () => version, () => 0);
   void v;
   if (!isEditMode() && !previewLoaded) return base;
   let out = base;
-  for (const [path, value] of Object.entries(overrides)) {
+  for (const [path, value] of Object.entries(store.page)) {
     out = setPath(out, path, value);
   }
   return out;
+}
+
+/**
+ * Unsaved edits to collection items, keyed by post id, for a page that shows
+ * many of them. Empty outside edit mode, so real visitors render exactly the
+ * server's props.
+ */
+export function useLiveItemEdits(): Readonly<Record<number, Readonly<Record<string, EditValue>>>> {
+  const v = useSyncExternalStore(subscribe, () => version, () => 0);
+  void v;
+  return isEditMode() ? store.items : EMPTY_STORE.items;
 }

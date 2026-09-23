@@ -1,6 +1,6 @@
 {
   "name": "livepress-bridge",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Frontend runtime for LivePress — realtime visual editing for headless WordPress. useLiveEdits() overlays wp-admin keystrokes onto your rendered React app via postMessage.",
   "license": "MIT",
   "author": "Murad",
