@@ -347,6 +347,9 @@
 .lp-input::placeholder { color: var(--ink-3); }
 .lp-input[disabled] { opacity: 0.5; cursor: not-allowed; }
 
+.lp-check { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.lp-checkbox { width: 16px; height: 16px; accent-color: var(--lp-accent, #c9a961); cursor: pointer; }
+
 /*
  * The same rules again, at a specificity wp-admin cannot reach.
  *
@@ -538,6 +541,13 @@
   transition: border-color var(--fast) var(--ease), color var(--fast) var(--ease), background var(--fast) var(--ease);
 }
 .lp-row-add:hover { border-color: var(--accent); color: var(--ink); background: var(--raise); }
+
+.lp-pick { display: flex; flex-direction: column; gap: 6px; }
+.lp-pick-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border: 1px solid rgba(236,234,228,0.14); border-radius: 8px; }
+.lp-pick-n { min-width: 18px; opacity: 0.6; font-variant-numeric: tabular-nums; }
+.lp-pick-t { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lp-pick-btn { background: none; border: 0; color: inherit; cursor: pointer; opacity: 0.7; }
+.lp-pick-btn:hover { opacity: 1; }
 
 /* ---------- globals: design / menus ---------- */
 .lp-section.lp-global .lp-sec-head { color: var(--ink); }

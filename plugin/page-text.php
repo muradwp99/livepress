@@ -39,6 +39,13 @@ function livepress_page_text( WP_Post $post ): string {
 
 	foreach ( $schema['sections'] as $section ) {
 		foreach ( $section['fields'] as $field ) {
+			/* Values, not words: a pick is a JSON list of post IDs, a bool is
+			   "1" or "", an order is a number. The key test below cannot see
+			   that, and a pick's stored "[]" became a paragraph of the page's
+			   Rank Math text. */
+			if ( in_array( $field['kind'] ?? '', array( 'pick', 'bool', 'order' ), true ) ) {
+				continue;
+			}
 			if ( ! livepress_is_prose_key( $field['key'] ) ) {
 				continue;
 			}

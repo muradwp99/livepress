@@ -3,7 +3,7 @@
  * Plugin Name: LivePress
  * Plugin URI:  https://github.com/muradwp99/livepress
  * Description: Realtime visual editing for headless WordPress. One "Site Pages" list; every page opens a fullscreen editor — fields left, live preview of your real frontend right — streaming every keystroke into the rendered site before saving.
- * Version:     1.5.5
+ * Version:     1.5.8
  * Author:      Murad
  * License:     MIT
  * Text Domain: livepress
@@ -44,6 +44,7 @@ require_once __DIR__ . '/asset-check.php';
 require_once __DIR__ . '/schedule.php';
 require_once __DIR__ . '/headless.php';
 require_once __DIR__ . '/seo-meta.php';
+require_once __DIR__ . '/collections.php';
 
 /**
  * Global option keys the PUBLIC, unauthenticated read route will serve.
@@ -144,6 +145,13 @@ add_action( 'init', function () {
 	foreach ( livepress_schema() as $schema ) {
 		foreach ( $schema['sections'] as $section ) {
 			foreach ( $section['fields'] as $field ) {
+				/* Not `order`: it binds to the post's own menu_order. As meta it
+				   was a `photo_order` key nothing ever writes — which the editor
+				   then loaded as the field's value, always blank, and compared
+				   against when checking a save for clashes. */
+				if ( 'order' === ( $field['kind'] ?? '' ) ) {
+					continue;
+				}
 				register_meta( 'post', $field['key'], array(
 					'single'       => true,
 					'type'         => 'string',
@@ -287,8 +295,14 @@ function livepress_render_editor() {
 	);
 	foreach ( $schema['sections'] as $section ) {
 		foreach ( $section['fields'] as $field ) {
+			/* `order` lives on the post row, where the save path writes it
+			   (splitSave in editor.js) — so that is where it loads from. */
+			if ( 'order' === $field['kind'] ) {
+				$values[ $field['key'] ] = (string) (int) $post->menu_order;
+				continue;
+			}
 			$raw = get_post_meta( $post->ID, $field['key'], true );
-			if ( 'repeater' === $field['kind'] ) {
+			if ( 'repeater' === $field['kind'] || 'pick' === $field['kind'] ) {
 				$decoded                  = json_decode( is_string( $raw ) ? $raw : '[]', true );
 				$values[ $field['key'] ] = is_array( $decoded ) ? $decoded : array();
 			} else {
@@ -334,6 +348,10 @@ function livepress_render_editor() {
 		'restBase' => $post->post_type,
 		'title'    => $post->post_title,
 		'slug'     => $post->post_name,
+		/* The preview shows the published site. An unpublished collection item
+		   is not on it, so the editor keeps that item's edits out of the
+		   preview and says why (onSite() in editor.js). */
+		'status'   => $post->post_status,
 		'frontend' => livepress_frontend(),
 		'path'     => $frontend_path,
 		'backUrl'  => admin_url( 'edit.php?post_type=' . $post->post_type ),
@@ -586,6 +604,32 @@ function livepress_paths_for( WP_Post $post ): array {
 		$paths[] = '/sitemap.xml';
 	}
 
+	/*
+	 * A collection item appears on its collection's own route, and on every
+	 * page that picks from the collection — the Gallery's Featured wall is
+	 * made of photos. Both come off the schema, so a page that gains a pick
+	 * field is purged without anybody remembering to list it here.
+	 */
+	if ( in_array( $post->post_type, livepress_collections(), true ) ) {
+		$schema = livepress_schema();
+		$path   = (string) ( $schema[ 'collection:' . $post->post_type ]['frontendPath'] ?? '' );
+		if ( '' !== $path ) {
+			$paths[] = str_replace( '{slug}', $post->post_name, $path );
+		}
+		foreach ( $schema as $slug => $page ) {
+			if ( 0 === strpos( (string) $slug, 'collection:' ) ) {
+				continue;
+			}
+			foreach ( $page['sections'] as $section ) {
+				foreach ( $section['fields'] as $field ) {
+					if ( 'pick' === ( $field['kind'] ?? '' ) && $post->post_type === ( $field['collection'] ?? '' ) ) {
+						$paths[] = str_replace( '{slug}', $slug, (string) ( $page['frontendPath'] ?? '' ) );
+					}
+				}
+			}
+		}
+	}
+
 	return $paths;
 }
 
@@ -660,7 +704,7 @@ add_action(
 		if ( wp_is_post_autosave( $post_id ) || wp_is_post_revision( $post_id ) ) {
 			return;
 		}
-		if ( ! in_array( $post->post_type, array( 'post', 'sitepage' ), true ) ) {
+		if ( ! in_array( $post->post_type, array_merge( array( 'post', 'sitepage' ), livepress_collections() ), true ) ) {
 			return;
 		}
 		if ( 'publish' !== $post->post_status && 'private' !== $post->post_status ) {
@@ -678,7 +722,7 @@ add_action(
 	function ( $meta_id, $post_id, $meta_key ) {
 		unset( $meta_id, $meta_key );
 		$post = get_post( (int) $post_id );
-		if ( $post && in_array( $post->post_type, array( 'post', 'sitepage' ), true ) ) {
+		if ( $post && in_array( $post->post_type, array_merge( array( 'post', 'sitepage' ), livepress_collections() ), true ) ) {
 			livepress_queue_revalidate( (int) $post_id );
 		}
 	},
@@ -748,7 +792,7 @@ add_filter(
 			return $check;
 		}
 		$post = get_post( (int) $object_id );
-		if ( ! $post || ! in_array( $post->post_type, array( 'post', 'sitepage' ), true ) ) {
+		if ( ! $post || ! in_array( $post->post_type, array_merge( array( 'post', 'sitepage' ), livepress_collections() ), true ) ) {
 			return $check;
 		}
 

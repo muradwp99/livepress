@@ -62,6 +62,14 @@
 		}
 		return null;
 	}
+	/** Every field def in the schema, keyed by field key. */
+	function fieldDefs() {
+		var out = {};
+		B.schema.sections.forEach( function ( sec ) {
+			sec.fields.forEach( function ( def ) { out[ def.key ] = def; } );
+		} );
+		return out;
+	}
 	/** Every field key on this page, flattened across sections. */
 	function allFieldKeys() {
 		var keys = [];
@@ -71,16 +79,43 @@
 		return keys;
 	}
 
-	function broadcast( key ) {
-		var def = fieldDef( key );
-		if ( ! def || ! frame || ! frame.contentWindow ) { return; }
-		var v = values[ key ];
+	/**
+	 * The message one field's live edit travels in.
+	 *
+	 * `item` names the collection item being edited. A photo previews on the
+	 * whole photos grid, so `photo_title` alone would not say which photo it
+	 * belongs to, and the frontend would have nowhere to put it. A page sends
+	 * none: the page is the thing being edited. No item means no key at all,
+	 * because the bridge drops an edit whose item is not a post id.
+	 */
+	function editMessage( def, v, item ) {
 		var value = v;
 		if ( def.kind === "lines" ) {
 			value = String( v || "" ).split( "\n" ).map( function ( s ) { return s.trim(); } ).filter( Boolean );
 		}
+		var msg = { type: "aux-edit", path: def.path, value: value };
+		if ( item ) { msg.item = item; }
+		return msg;
+	}
+
+	/**
+	 * Is what this editor edits on the page the preview shows?
+	 *
+	 * A collection item previews on the published list it belongs to, and an
+	 * unpublished one is not in it: laying its edits over that list would
+	 * present a draft as live. Pages are always previewed. A boot payload with
+	 * no status (an older plugin) behaves as before rather than going quiet.
+	 */
+	function onSite( b ) {
+		return b.mode !== "collection" || ! b.status || b.status === "publish";
+	}
+
+	function broadcast( key ) {
+		var def = fieldDef( key );
+		if ( ! def || ! frame || ! frame.contentWindow ) { return; }
+		if ( ! onSite( B ) ) { return; }
 		try {
-			frame.contentWindow.postMessage( { type: "aux-edit", path: def.path, value: value }, B.frontend );
+			frame.contentWindow.postMessage( editMessage( def, values[ key ], B.mode === "collection" ? B.postId : 0 ), B.frontend );
 		} catch ( e ) { /* frame not ready */ }
 	}
 	function broadcastAll() {
@@ -616,6 +651,24 @@
 		input.focus();
 	}
 
+	/**
+	 * Which of my changed fields somebody else has also changed, going by the
+	 * document's meta.
+	 *
+	 * Meta is all this compares, so a field that is not meta has no business
+	 * here. `order` is the post's own menu_order: compared against a meta key
+	 * that nothing writes, it made every second order save in a session report
+	 * "Somebody else changed Sort order" about a change nobody else had made.
+	 */
+	function metaClashes( mine, theirs, defs ) {
+		return mine.filter( function ( c ) {
+			var def = defs[ c.key ];
+			if ( def && def.kind === "order" ) { return false; }
+			if ( ! ( c.key in theirs ) ) { return false; }
+			return String( theirs[ c.key ] == null ? "" : theirs[ c.key ] ) !== c.before;
+		} );
+	}
+
 	function checkConflict() {
 		if ( ! B.postId || ! B.modified ) { return Promise.resolve( null ); }
 		var mine = changedFields();
@@ -627,11 +680,7 @@
 				if ( ! now || now === B.modified ) { return null; }
 
 				/* The document moved. Did it move under one of my fields? */
-				var theirs = ( doc && doc.meta ) || {};
-				var clashes = mine.filter( function ( c ) {
-					if ( ! ( c.key in theirs ) ) { return false; }
-					return String( theirs[ c.key ] == null ? "" : theirs[ c.key ] ) !== c.before;
-				} );
+				var clashes = metaClashes( mine, ( doc && doc.meta ) || {}, fieldDefs() );
 				return clashes.length ? { at: now, fields: clashes } : null;
 			} )
 			.catch( function () { return null; } );
@@ -950,6 +999,25 @@
 	}
 
 	/* ---------- field renderers ---------- */
+	/**
+	 * Normalise what a picker holds: ordered, deduped, capped, integers only.
+	 *
+	 * Junk is dropped rather than coerced. A NaN here serialises to null, a
+	 * pick that can never resolve to a photo, which shows up as a featured
+	 * wall mysteriously one tile shorter than the list in the editor.
+	 */
+	function pickValue( raw, max ) {
+		var seen = {};
+		var out = [];
+		( Array.isArray( raw ) ? raw : [] ).forEach( function ( v ) {
+			var n = parseInt( v, 10 );
+			if ( isNaN( n ) || n <= 0 || seen[ n ] ) { return; }
+			seen[ n ] = true;
+			if ( out.length < max ) { out.push( n ); }
+		} );
+		return out;
+	}
+
 	function inputFor( key, def ) {
 		if ( def.kind === "textarea" || def.kind === "lines" ) {
 			var ta = el( "textarea", { class: "lp-input", rows: def.kind === "lines" ? 5 : 3 } );
@@ -962,6 +1030,31 @@
 			} );
 			return autoGrow( ta );
 		}
+		if ( def.kind === "bool" ) {
+			var wrap = el( "label", { class: "lp-check" } );
+			var box = el( "input", { class: "lp-checkbox", type: "checkbox" } );
+			box.checked = values[ key ] === "1";
+			box.addEventListener( "change", function () {
+				noteEdit( __( "edit", "livepress" ) + " " + def.label, key );
+				setValue( key, box.checked ? "1" : "" );
+				endEdit();
+			} );
+			wrap.appendChild( box );
+			wrap.appendChild( el( "span", { text: def.label } ) );
+			return wrap;
+		}
+		if ( def.kind === "order" ) {
+			var num = el( "input", { class: "lp-input", type: "number", step: "1" } );
+			num.value = values[ key ] || "";
+			num.addEventListener( "focus", endEdit );
+			num.addEventListener( "blur", endEdit );
+			num.addEventListener( "input", function () {
+				noteEdit( __( "edit", "livepress" ) + " " + def.label, key );
+				setValue( key, num.value );
+			} );
+			return num;
+		}
+		if ( def.kind === "pick" ) { return pickerFor( key, def ); }
 		var input = el( "input", { class: "lp-input", type: "text" } );
 		input.value = values[ key ] || "";
 		input.addEventListener( "focus", endEdit );
@@ -1026,16 +1119,17 @@
 	/**
 	 * The field holding a picture's alt text, given the picture's own key.
 	 *
-	 * Two conventions are in use and both have to work: a top-level image is
-	 * `cta_img` beside `cta_img_alt`, while a repeater column is `src` beside
-	 * plain `alt`. So the candidates are tried in order against whatever keys
-	 * actually exist alongside this one, rather than a name being assumed.
+	 * Three conventions are in use and all have to work: a top-level image is
+	 * `cta_img` beside `cta_img_alt`, a collection's image is `photo_src`
+	 * beside `photo_alt`, and a repeater column is `src` beside plain `alt`.
+	 * So the candidates are tried in order against whatever keys actually
+	 * exist alongside this one, rather than a name being assumed.
 	 *
 	 * Returns null when a picture has no alt field at all — some do not, and
 	 * that is the schema's business, not something to invent a field for.
 	 */
 	function altKeyFor( imgKey, siblingKeys ) {
-		var candidates = [ imgKey + "_alt", "alt" ];
+		var candidates = [ imgKey + "_alt", imgKey.replace( /_src$/, "_alt" ), "alt" ];
 		for ( var i = 0; i < candidates.length; i++ ) {
 			if ( candidates[ i ] !== imgKey && siblingKeys.indexOf( candidates[ i ] ) !== -1 ) {
 				return candidates[ i ];
@@ -1267,6 +1361,94 @@
 			} ) );
 		}
 		rerender();
+		return box;
+	}
+
+	/**
+	 * Choose items from a collection.
+	 *
+	 * Candidates come from the collection's own REST route, so the list is
+	 * whatever is published right now — not a copy of it that goes stale.
+	 */
+	function pickerFor( key, def ) {
+		var box = el( "div", { class: "lp-pick" } );
+		var chosen = pickValue( values[ key ] || [], def.max );
+		var items = {};
+
+		function paint() {
+			box.innerHTML = "";
+			chosen.forEach( function ( id, i ) {
+				var row = el( "div", { class: "lp-pick-row" }, [
+					el( "span", { class: "lp-pick-n", text: String( i + 1 ) } ),
+					el( "span", { class: "lp-pick-t", text: items[ id ] || "#" + id } ),
+				] );
+				var up = el( "button", { class: "lp-pick-btn", type: "button", text: "↑" } );
+				var rm = el( "button", { class: "lp-pick-btn", type: "button", text: "✕" } );
+				up.addEventListener( "click", function () {
+					if ( i === 0 ) { return; }
+					chosen.splice( i - 1, 0, chosen.splice( i, 1 )[ 0 ] );
+					commit();
+				} );
+				rm.addEventListener( "click", function () {
+					chosen.splice( i, 1 );
+					commit();
+				} );
+				row.appendChild( up );
+				row.appendChild( rm );
+				box.appendChild( row );
+			} );
+			if ( chosen.length < def.max ) { box.appendChild( adder() ); }
+		}
+
+		function commit() {
+			noteEdit( __( "edit", "livepress" ) + " " + def.label, key );
+			setValue( key, pickValue( chosen, def.max ) );
+			endEdit();
+			paint();
+		}
+
+		function adder() {
+			var sel = el( "select", { class: "lp-input" } );
+			sel.appendChild( el( "option", { value: "", text: __( "Add…", "livepress" ) } ) );
+			Object.keys( items ).forEach( function ( id ) {
+				if ( chosen.indexOf( parseInt( id, 10 ) ) !== -1 ) { return; }
+				sel.appendChild( el( "option", { value: id, text: items[ id ] } ) );
+			} );
+			sel.addEventListener( "change", function () {
+				if ( ! sel.value ) { return; }
+				chosen.push( parseInt( sel.value, 10 ) );
+				commit();
+			} );
+			return sel;
+		}
+
+		/* Labelled by the caption the site shows, not by post_title: LivePress
+		   edits the caption (`photo_title` — a collection's own `_title` field)
+		   and never post_title, which the migration set once, so the two part
+		   ways at the first caption edit. post_title is the fallback. */
+		var titleKey = def.collection + "_title";
+
+		/* Every page of candidates, not the first hundred: anything past row
+		   100 could not be picked at all, and nothing said so. Twenty pages at
+		   most, so a bad X-WP-TotalPages header cannot keep it fetching. */
+		function load( page ) {
+			return wp.apiFetch( {
+				path: "/wp/v2/" + def.collection + "?per_page=100&page=" + page + "&_fields=id,title,meta." + titleKey + "&orderby=menu_order&order=asc",
+				parse: false,
+			} ).then( function ( res ) {
+				var pages = parseInt( res.headers.get( "X-WP-TotalPages" ), 10 ) || 1;
+				return res.json().then( function ( rows ) {
+					rows.forEach( function ( r ) {
+						items[ r.id ] = ( r.meta && r.meta[ titleKey ] ) || ( r.title && r.title.rendered ) || ( "#" + r.id );
+					} );
+					if ( page < pages && page < 20 ) { return load( page + 1 ); }
+				} );
+			} );
+		}
+
+		load( 1 ).then( paint ).catch( paint );
+
+		paint();
 		return box;
 	}
 
@@ -1565,7 +1747,7 @@
 	/** One field's value in the shape WordPress stores it. */
 	function metaValue( key ) {
 		var def = fieldDef( key );
-		return def && def.kind === "repeater"
+		return def && ( def.kind === "repeater" || def.kind === "pick" )
 			? JSON.stringify( values[ key ] || [] )
 			: String( values[ key ] == null ? "" : values[ key ] );
 	}
@@ -1590,13 +1772,41 @@
 		return meta;
 	}
 
+	/**
+	 * Split a save into post meta and post attributes.
+	 *
+	 * Everything LivePress edits is meta, with one exception: `order` binds to
+	 * WordPress's own `menu_order`, which lives on the post row. Posting it
+	 * inside `meta` stores a key nothing reads and leaves the real sort order
+	 * untouched — and REST answers 200, so nothing tells you.
+	 *
+	 * A blank or non-numeric order is omitted rather than coerced. Zero is a
+	 * real position; coercing "" to 0 would quietly move the item to the front.
+	 */
+	function splitSave( vals, defs ) {
+		var meta = {};
+		var attrs = {};
+		Object.keys( vals ).forEach( function ( key ) {
+			var def = defs[ key ];
+			if ( def && def.kind === "order" ) {
+				var n = parseInt( vals[ key ], 10 );
+				if ( ! isNaN( n ) && String( vals[ key ] ).trim() !== "" ) { attrs.menu_order = n; }
+				return;
+			}
+			meta[ key ] = vals[ key ];
+		} );
+		return { meta: meta, attrs: attrs };
+	}
+
 	function doSave() {
 		var btn = document.getElementById( "lp-save" );
 		btn.textContent = "Saving…";
-		var meta = changedMeta();
+		var split = splitSave( changedMeta(), fieldDefs() );
 		var jobs = [];
-		if ( B.postId && Object.keys( meta ).length ) {
-			jobs.push( wp.apiFetch( { path: "/wp/v2/" + B.restBase + "/" + B.postId, method: "POST", data: { meta: meta } } ) );
+		if ( B.postId && ( Object.keys( split.meta ).length || Object.keys( split.attrs ).length ) ) {
+			var data = split.attrs;
+			if ( Object.keys( split.meta ).length ) { data.meta = split.meta; }
+			jobs.push( wp.apiFetch( { path: "/wp/v2/" + B.restBase + "/" + B.postId, method: "POST", data: data } ) );
 		}
 		Object.keys( globalsDirty ).forEach( function ( key ) {
 			jobs.push( wp.apiFetch( {
@@ -1756,7 +1966,13 @@
 					] ),
 					el( "button", { id: "lp-undo", class: "lp-mini", type: "button", text: __( "Undo", "livepress" ), disabled: "disabled", title: __( "Nothing to undo", "livepress" ), onclick: undo } ),
 					el( "button", { id: "lp-review", class: "lp-mini", type: "button", text: __( "Review", "livepress" ), onclick: openReview } ),
-					B.postId ? el( "button", { id: "lp-schedule", class: "lp-mini", type: "button", text: __( "Schedule", "livepress" ), onclick: openSchedule } ) : null,
+					/* Not on a collection item. A scheduled change lands as plain
+					   meta writes, so an `order` in it would miss menu_order the
+					   way saves once did, and schedule.php only accepts a Site
+					   Page: the button could only ever answer "Could not schedule
+					   that change". Supporting it means applying splitSave when
+					   the change lands, which is future work. */
+					B.postId && B.mode !== "collection" ? el( "button", { id: "lp-schedule", class: "lp-mini", type: "button", text: __( "Schedule", "livepress" ), onclick: openSchedule } ) : null,
 					el( "button", { id: "lp-save", class: "lp-save", type: "button", text: __( "Save", "livepress" ), onclick: save } ),
 				] ),
 				/* A live region, because everything this editor says back arrives
@@ -1806,6 +2022,19 @@
 		renderLockBar();
 		bindLockHeartbeat();
 		focusRequestedSection();
+		/* Says why the preview will not move, rather than leaving it to look
+		   broken: onSite() keeps an unpublished item's edits out of it. The
+		   button goes where Publish is, since this editor has no Publish of
+		   its own. */
+		if ( ! onSite( B ) ) {
+			showBar( bar(
+				B.status === "future"
+					? __( "Scheduled, so it is not on the site until its date, and the preview shows the page without it. Saving here does not change the date.", "livepress" )
+					: __( "Not published, so it is not on the site, and the preview shows the page without it. Saving here does not publish it.", "livepress" ),
+				B.seoUrl ? [ { label: __( "Open in WordPress", "livepress" ), onclick: function () { window.location.href = B.seoUrl; } } ] : [],
+				"warn"
+			) );
+		}
 	}
 
 	/*
