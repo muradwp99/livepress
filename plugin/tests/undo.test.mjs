@@ -26,6 +26,7 @@ const harness = `
   function persistDraft() {}
   function refreshReviewCount() {}
   function refreshSectionBadges() {}
+  function refreshFilmBar() {}
   function sendRaw() {}
   function bar(msg) { return msg; }
   /* The editor's i18n shim provides these; the block under test calls them

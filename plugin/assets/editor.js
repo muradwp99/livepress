@@ -132,6 +132,7 @@
 		persistDraft();
 		refreshReviewCount();
 		refreshSectionBadges();
+		refreshFilmBar();
 	}
 
 	/* ---------- undo ----------
@@ -231,6 +232,7 @@
 		persistDraft();
 		refreshReviewCount();
 		refreshSectionBadges();
+		refreshFilmBar();
 		refreshUndo();
 		showBar( bar( sprintf(
 			/* translators: %s names the action being undone, e.g. "delete row from Photos". */
@@ -730,6 +732,7 @@
 						rerenderPanel();
 						refreshReviewCount();
 						document.getElementById( "lp-bars" ).innerHTML = "";
+						refreshFilmBar();
 					}
 				},
 				{
@@ -738,6 +741,7 @@
 					onclick: function () {
 						clearDraft();
 						document.getElementById( "lp-bars" ).innerHTML = "";
+						refreshFilmBar();
 					}
 				}
 			],
@@ -1097,17 +1101,14 @@
 		'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' +
 		'<path d="M8 10.5V2.5M5 5.5L8 2.5l3 3"/><path d="M2.5 10.5v2a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-2"/></svg>';
 
-	/** Send one file to the media library and hand back its URL. */
-	function uploadImage( file ) {
+	/**
+	 * Upload one file to the Media Library and hand back its attachment, so
+	 * a caller can read more than the address — a film's length, for one.
+	 */
+	function uploadMedia( file ) {
 		var data = new FormData();
 		data.append( "file", file, file.name );
-		return wp.apiFetch( { path: "/wp/v2/media", method: "POST", body: data } )
-			.then( function ( att ) {
-				/* `source_url` is the original. The library also returns sized
-				   versions, but a field that asked for an image should get the
-				   one that was uploaded, not a thumbnail of it. */
-				return ( att && att.source_url ) || "";
-			} );
+		return wp.apiFetch( { path: "/wp/v2/media", method: "POST", body: data } );
 	}
 
 	/**
@@ -1136,6 +1137,133 @@
 			}
 		}
 		return null;
+	}
+
+	/**
+	 * The field holding a film's duration, given the film's own key:
+	 * `video_file` beside `video_duration`, the way `photo_src` sits beside
+	 * `photo_alt`. Null when the schema has no duration field.
+	 */
+	function durationKeyFor( fileKey, siblingKeys ) {
+		var candidates = [ fileKey.replace( /_file$/, "_duration" ), fileKey + "_duration" ];
+		for ( var i = 0; i < candidates.length; i++ ) {
+			if ( candidates[ i ] !== fileKey && siblingKeys.indexOf( candidates[ i ] ) !== -1 ) {
+				return candidates[ i ];
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * A length the way this site writes it: "01:10", not WordPress's "1:10".
+	 * An hour-long film keeps its hours; anything unrecognised comes back
+	 * trimmed rather than guessed at.
+	 */
+	function mmss( s ) {
+		var str = String( s || "" ).trim();
+		var m = /^(\d{1,2}):(\d\d)$/.exec( str );
+		return m ? ( m[ 1 ].length === 1 ? "0" + m[ 1 ] : m[ 1 ] ) + ":" + m[ 2 ] : str;
+	}
+
+	/**
+	 * What a chosen file brings for its paired field: an image's alt text, a
+	 * film's length. The Media Library's attachment data calls the length
+	 * `fileLength`; a file just uploaded over REST has it as
+	 * `media_details.length_formatted`.
+	 */
+	function pairedValue( kind, att ) {
+		if ( ! att ) { return ""; }
+		if ( kind === "video" ) {
+			return mmss( att.fileLength || ( att.media_details && att.media_details.length_formatted ) || "" );
+		}
+		return typeof att.alt === "string" ? att.alt : "";
+	}
+
+	/**
+	 * The film files a browser plays inline, and so the only ones offered.
+	 * WordPress accepts .mov, .avi and more, most of which the site could not
+	 * play: an upload would succeed and the film would fail on the page.
+	 * Must agree with WEB_FILM in lib/wp/videoOverlay.ts (tests/video-overlay.test.mjs).
+	 */
+	var WEB_FILM_MIMES = [ "video/mp4", "video/webm", "video/ogg" ];
+
+	/* The same films by extension, which is how the site itself decides
+	   (WEB_FILM there; the same test holds the two in step). A Mac reports an
+	   .m4v as video/x-m4v, and some files come with no type at all, so the
+	   name is the fallback. */
+	var WEB_FILM_EXTS = [ "mp4", "m4v", "webm", "ogv", "ogg" ];
+
+	/** Will the site play this film: its MIME type, else its file name or URL. */
+	function isWebFilm( mime, name ) {
+		return WEB_FILM_MIMES.indexOf( mime ) !== -1 ||
+			new RegExp( "\\.(" + WEB_FILM_EXTS.join( "|" ) + ")(?:[?#].*)?$", "i" ).test( String( name || "" ) );
+	}
+
+	/**
+	 * The 11-character YouTube id in a bare id or a pasted link, or "" — the
+	 * site's own reading, youtubeId() in lib/wp/videoOverlay.ts, which
+	 * wordpress/livepress/tests/film-parity.test.mjs holds this to. A channel
+	 * or playlist link has no id, and the site then hides the film.
+	 */
+	function youtubeId( input ) {
+		var s = String( input == null ? "" : input ).trim();
+		if ( /^[\w-]{11}$/.test( s ) ) { return s; }
+		var m = /(?:youtube(?:-nocookie)?\.com\/(?:watch\?(?:[^#]*&)?v=|embed\/|shorts\/|live\/|v\/)|youtu\.be\/)([\w-]{11})(?![\w-])/.exec( s );
+		return m ? m[ 1 ] : "";
+	}
+
+	/**
+	 * Why the site would hide this film, or "" when it will show it.
+	 *
+	 * The site's rule, playable() in lib/wp/videoOverlay.ts: something to play
+	 * (a web film, or a YouTube video) and a cover to show it with (the Cover
+	 * image, else the YouTube video's own frame). So a YouTube link alone is
+	 * enough, and an uploaded film needs a Cover image. The site drops a film
+	 * that breaks it without a word, so this is where it gets said.
+	 */
+	function filmHiddenMessage( file, youtube, poster ) {
+		if ( youtubeId( youtube ) ) { return ""; }
+		var film = isWebFilm( "", String( file || "" ).trim() );
+		var cover = String( poster || "" ).trim() !== "";
+		if ( film && cover ) { return ""; }
+		var why = film
+			? __( "This film won't show on the site yet: add a Cover image, or a YouTube link.", "livepress" )
+			: cover
+				? __( "This film won't show on the site yet: add a YouTube link, or upload an MP4, WebM or Ogg film.", "livepress" )
+				: __( "This film won't show on the site yet: add a YouTube link, or upload an MP4, WebM or Ogg film and add a Cover image.", "livepress" );
+		return String( youtube || "" ).trim()
+			? why + " " + __( "That YouTube link doesn't point to a single video.", "livepress" )
+			: why;
+	}
+
+	/**
+	 * Keep one warning up while the film being edited would be hidden, and
+	 * take it down the moment it would show. Its keys come off the item's
+	 * `video` field the way durationKeyFor finds the duration: `video_file`
+	 * beside `video_youtube` and `video_poster`.
+	 */
+	function refreshFilmBar() {
+		var host = document.getElementById( "lp-bars" );
+		if ( ! host || B.mode !== "collection" ) { return; }
+		var file = null;
+		B.schema.sections.forEach( function ( s ) {
+			s.fields.forEach( function ( f ) { if ( f.kind === "video" && ! file ) { file = f.key; } } );
+		} );
+		var keys = allFieldKeys();
+		var youtube = file ? file.replace( /_file$/, "_youtube" ) : "";
+		var poster = file ? file.replace( /_file$/, "_poster" ) : "";
+		var message = youtube !== file && keys.indexOf( youtube ) !== -1 && keys.indexOf( poster ) !== -1
+			? filmHiddenMessage( values[ file ], values[ youtube ], values[ poster ] )
+			: "";
+		var existing = host.querySelector( ".lp-bar.film-hidden" );
+		/* Replaced only when what it says changes: this runs on every edit, and
+		   the bars are a live region that would read it out again each time. */
+		if ( existing && existing.querySelector( ".lp-bar-msg" ).textContent === message ) { return; }
+		if ( existing ) { existing.remove(); }
+		if ( ! message ) { return; }
+		var node = bar( message, null, "warn" );
+		node.classList.add( "film-hidden" );
+		host.appendChild( node );
 	}
 
 	/**
@@ -1169,42 +1297,115 @@
 		}
 	}
 
-	function mediaControls( assign, host ) {
+	/**
+	 * Keep the duration with the film it describes: a new file is a new
+	 * length. When the file reports none, the old duration is left alone but
+	 * called out, the same courtesy syncAlt pays alt text.
+	 */
+	function syncDuration( durKey, incoming, current, apply ) {
+		if ( ! durKey ) { return; }
+		if ( incoming ) {
+			if ( incoming !== current ) {
+				apply( incoming );
+				showBar( bar( __( "Duration filled in from the film.", "livepress" ) ) );
+			}
+			return;
+		}
+		if ( current ) {
+			showBar( bar(
+				__( "That film's length is not known, so the old duration is still here — check it still matches.", "livepress" ),
+				null,
+				"warn"
+			) );
+		}
+	}
+
+	function mediaControls( assign, host, kind ) {
+		var isVideo = kind === "video";
+		/* Said, not silently dropped: a .mov that uploads and then will not
+		   play is worse than being told up front. */
+		function refuseFilm() {
+			showBar( bar( __( "Only MP4, WebM or Ogg films play on the site. Convert the file, or use its YouTube link instead.", "livepress" ), null, "warn" ) );
+		}
+		/* Why an upload did not happen, up until it is dismissed or the next
+		   attempt replaces it: "Failed" on the button for a second and a half
+		   gave no reason at all. */
+		function uploadBar( message ) {
+			var bars = document.getElementById( "lp-bars" );
+			var old = bars && bars.querySelector( ".lp-bar.upload-failed" );
+			if ( old ) { old.remove(); }
+			if ( ! message ) { return; }
+			var node = bar( message, [ { label: __( "Dismiss", "livepress" ), onclick: function () { node.remove(); } } ], "warn" );
+			node.classList.add( "upload-failed" );
+			showBar( node );
+		}
+
 		var picker = el( "button", { class: "lp-media-btn", type: "button", title: __( "Choose from the Media Library", "livepress" ) } );
 		picker.innerHTML = ICON_LIBRARY;
 		picker.appendChild( el( "span", { text: __( "Choose", "livepress" ) } ) );
 		picker.addEventListener( "click", function () {
-			var frame = wp.media( { title: __( "Choose image", "livepress" ), multiple: false, library: { type: "image" } } );
+			var frame = wp.media( {
+				title: isVideo ? __( "Choose film", "livepress" ) : __( "Choose image", "livepress" ),
+				multiple: false,
+				library: { type: isVideo ? "video" : "image" }
+			} );
 			frame.on( "select", function () {
 				var att = frame.state().get( "selection" ).first().toJSON();
-				/* The alt text is right here on the attachment and used to be
-				   thrown away — see altKeyFor. */
-				assign( att.url, typeof att.alt === "string" ? att.alt : "" );
+				if ( isVideo && ! isWebFilm( att.mime, att.url ) ) { refuseFilm(); return; }
+				/* The alt text — or a film's length — is right here on the
+				   attachment and used to be thrown away: see pairedValue. */
+				assign( att.url, pairedValue( isVideo ? "video" : "image", att ) );
 			} );
 			frame.open();
 		} );
 
-		var file = el( "input", { type: "file", accept: "image/*", class: "lp-file" } );
+		/* Extensions as well as types, or a chooser that maps video/mp4 to
+		   .mp4 alone greys out the .m4v files the site plays. */
+		var file = el( "input", { type: "file", accept: isVideo ? WEB_FILM_MIMES.concat( WEB_FILM_EXTS.map( function ( x ) { return "." + x; } ) ).join( "," ) : "image/*", class: "lp-file" } );
 		var upload = el( "button", { class: "lp-media-btn", type: "button", title: __( "Upload a file from this computer", "livepress" ) } );
 		upload.innerHTML = ICON_UPLOAD;
 		upload.appendChild( el( "span", { text: __( "Upload", "livepress" ) } ) );
 		upload.addEventListener( "click", function () { file.click(); } );
 
 		function run( f ) {
-			if ( ! f || ! /^image\//.test( f.type ) ) { return; }
+			if ( ! f ) { return; }
+			if ( isVideo && ! isWebFilm( f.type, f.name ) ) {
+				refuseFilm();
+				return;
+			}
+			if ( ! isVideo && ! /^image\//.test( f.type ) ) { return; }
+			/* Refused before it is sent: the server takes every byte and only
+			   then says no. B.maxUpload is wp_max_upload_size(). */
+			if ( B.maxUpload && f.size > B.maxUpload ) {
+				uploadBar( sprintf(
+					/* translators: %s is the largest file this site accepts, in megabytes. */
+					__( "That file is over %s MB, the most this site accepts, so it was not uploaded. Make it smaller and try again.", "livepress" ),
+					Math.floor( B.maxUpload / 1048576 )
+				) );
+				return;
+			}
+			uploadBar( "" );
 			var label = upload.querySelector( "span" );
 			var was = label.textContent;
 			upload.disabled = true;
 			label.textContent = "Uploading…";
-			uploadImage( f )
-				.then( function ( url ) {
-					/* A file uploaded from disk has no alt text yet, so pass
-					   an empty string and let the caller flag the stale one. */
-					if ( url ) { assign( url, "" ); }
+			uploadMedia( f )
+				.then( function ( att ) {
+					/* `source_url` is the original. The library also returns
+					   sized versions, but a field that asked for a file should
+					   get the one that was uploaded, not a thumbnail of it. */
+					var url = ( att && att.source_url ) || "";
+					/* A picture uploaded from disk has no alt text yet, so it
+					   passes "" and the caller flags the stale one; a film's
+					   length is known the moment it lands. */
+					if ( url ) { assign( url, isVideo ? pairedValue( "video", att ) : "" ); }
 					label.textContent = url ? "Uploaded" : "Failed";
 				} )
 				.catch( function ( err ) {
 					label.textContent = "Failed";
+					/* apiFetch rejects with the REST error itself, whose message
+					   is the server's own reason. */
+					uploadBar( ( err && err.message ) || __( "The upload failed. Try again, or add the file in the Media Library and choose it from there.", "livepress" ) );
 					console.error( "LivePress upload failed", err );
 				} )
 				.then( function () {
@@ -1787,26 +1988,29 @@
 				/* An image field is a URL until you can see it — and until this
 				   it was *only* a URL: no picker, no upload, so changing the
 				   picture meant pasting an address found somewhere else. */
-				if ( def.kind === "image" ) {
-					var thumb = imagePreview( function () { return values[ def.key ]; } );
-					control.addEventListener( "input", function () { thumb.refresh(); } );
+				if ( def.kind === "image" || def.kind === "video" ) {
+					var isFilm = def.kind === "video";
+					/* A film has no thumbnail here: its cover is its own field. */
+					var thumb = isFilm ? null : imagePreview( function () { return values[ def.key ]; } );
+					if ( thumb ) { control.addEventListener( "input", function () { thumb.refresh(); } ); }
 					kids.push(
-						mediaControls( function ( url, incomingAlt ) {
+						mediaControls( function ( url, paired ) {
 							pushUndo( "change " + def.label );
 							control.value = url;
 							setValue( def.key, url );
-							/* Siblings here are every field on the page, where
-							   the convention is `cta_img` beside `cta_img_alt`. */
-							var altKey = altKeyFor( def.key, allFieldKeys() );
-							syncAlt( altKey, incomingAlt, altKey ? values[ altKey ] : "", function ( next ) {
-								setValue( altKey, next );
-								var altInput = document.querySelector(
-									'.lp-field[data-field="' + altKey + '"] input, .lp-field[data-field="' + altKey + '"] textarea'
+							/* Siblings here are every field on the page, where the
+							   conventions are `cta_img` beside `cta_img_alt` and
+							   `video_file` beside `video_duration`. */
+							var pairKey = isFilm ? durationKeyFor( def.key, allFieldKeys() ) : altKeyFor( def.key, allFieldKeys() );
+							( isFilm ? syncDuration : syncAlt )( pairKey, paired, pairKey ? values[ pairKey ] : "", function ( next ) {
+								setValue( pairKey, next );
+								var pairInput = document.querySelector(
+									'.lp-field[data-field="' + pairKey + '"] input, .lp-field[data-field="' + pairKey + '"] textarea'
 								);
-								if ( altInput ) { altInput.value = next; }
+								if ( pairInput ) { pairInput.value = next; }
 							} );
-							thumb.refresh();
-						}, wrap ),
+							if ( thumb ) { thumb.refresh(); }
+						}, wrap, def.kind ),
 						thumb
 					);
 				}
@@ -2134,6 +2338,7 @@
 				"warn"
 			) );
 		}
+		refreshFilmBar();
 	}
 
 	/*

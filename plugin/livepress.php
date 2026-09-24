@@ -3,7 +3,7 @@
  * Plugin Name: LivePress
  * Plugin URI:  https://github.com/muradwp99/livepress
  * Description: Realtime visual editing for headless WordPress. One "Site Pages" list; every page opens a fullscreen editor — fields left, live preview of your real frontend right — streaming every keystroke into the rendered site before saving.
- * Version:     1.6.1
+ * Version:     1.6.2
  * Author:      Murad
  * License:     MIT
  * Text Domain: livepress
@@ -369,6 +369,9 @@ function livepress_render_editor() {
 		'lockedBy' => $locked_by,
 		/* "time:user_id", the shape core's heartbeat handler expects back. */
 		'lock'     => $lock,
+		/* The largest file an upload may be, in bytes, so the editor refuses a
+		   bigger one before sending it rather than after (run() in editor.js). */
+		'maxUpload' => wp_max_upload_size(),
 		'schema'   => $schema,
 		'values'   => $values,
 	) );

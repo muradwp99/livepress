@@ -63,8 +63,10 @@ Copy `examples/schema-faq.php` to `plugin/schema-home.php` and edit.
 > that the glob is not fussy: `schema-anything.example.php` matches too, so
 > keep samples out of the plugin root.
 
-Field kinds: `text`, `textarea`, `lines` (newline list), `image`, `repeater`
-(sub-kind `image` adds a Media Library picker), and three that collections
+Field kinds: `text`, `textarea`, `lines` (newline list), `image`, `video` (a
+film: the Media Library's video picker, upload or drop, web-playable files
+only), `repeater` (sub-kind `image` adds a Media Library picker), and three
+that collections
 brought: `bool` (a checkbox, stored `"1"` or `""`), `order` (the post's own
 `menu_order`, never meta) and `pick` (chosen items of a collection, in order,
 stored as a JSON array of post ids). Every schema field except `order` is
@@ -256,6 +258,20 @@ and flagged, because deleting somebody's sentence is not the picker's call.
 Without this, changing an image left the page carrying a confident
 description of a picture that was no longer there — read aloud as fact, with
 nothing to say otherwise.
+
+## A film brings its length
+
+Choosing or uploading a film fills its paired duration field — `video_file`
+beside `video_duration` — from the attachment's length. Only files a browser
+plays inline are taken (MP4, WebM or Ogg, judged by type or by extension, so a
+Mac's `.m4v` gets through); a `.mov` is refused with the reason, not saved.
+Uploads over the server's `wp_max_upload_size()` are refused before they are
+sent, and a failed upload keeps the server's reason on screen until dismissed.
+
+In a collection whose schema pairs `<x>_file` with `<x>_youtube` and
+`<x>_poster`, a warning stays up while the item has nothing the site would
+show — nothing to play, or no cover — and says which is missing. It comes down
+the moment the item would show.
 
 ## Translation
 
